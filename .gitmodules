@@ -1,0 +1,3 @@
+[submodule "models/resnet/zoo"]
+	path = models/resnet/zoo
+	url = https://github.com/Cadene/tensorflow-model-zoo.torch.git
