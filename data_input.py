@@ -1,11 +1,19 @@
-#Nikhil Sardana 7/5/17
+#Nikhil Sardana
+#7/5/17
+
 import csv
+import os
+import numpy as np
+from libtiff import TIFFfile, TIFFimage, TIFF
+import torch
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms, utils
 
 def read_data(filename, cloud_labels, feature_labels):
 	img = []
 	feat = []
 	cloud = []
-	with open(filename, newline='') as csvfile:
+	with open(filename, 'rb') as csvfile:
 		next(csvfile)
 		datareader = csv.reader(csvfile, delimiter=' ', quotechar='|')
 		for row in datareader:
@@ -14,32 +22,67 @@ def read_data(filename, cloud_labels, feature_labels):
 
 			string_feat= [second_split[1]] + row[1:]
 
-			cloud_one_hot = [0]*4			#one hot vectors
-			feature_one_hot = [0]*13
+			cloud_one_hot = np.array([np.zeros(4)])			#one hot vectors
+			feature_one_hot = np.array([np.zeros(13)])
 			#look for features by iterating over labels and doing string comparison
 			for element in string_feat:
 				for index,k in enumerate(feature_labels):
 					if element==k:
-						feature_one_hot[index] = 1
+						feature_one_hot[0][index] = 1
 				for index,k in enumerate(cloud_labels):
 					if element==k:
-						cloud_one_hot[index] = 1
+						cloud_one_hot[0][index] = 1
 
 			feat.append(feature_one_hot)
 			cloud.append(cloud_one_hot)
+
 
 	return(img, feat, cloud)
 
 
 
+class AmazonDataSet(Dataset):
 
+    def __init__(self, img_list, labels_list, transform=None):
+        self.transform=transform
 
+    def __getitem__(self,idx):
+        img_name = os.getcwd()+"/../train/train-tif-v2/" + img_list[idx] + ".tif"
+        tif = TIFF.open('img_name', mode='r')
+        image = tif.read_image()
+        sample = {'image':image, 'labels': labels[idx]}
+        #work in progress
 
-
-
+def compute_statistics(image_list):
+    sums = np.zeros(4)
+    for i in range(len(image_list)):
+        img_path = os.getcwd() + "/../train/train-tif-v2/" + image_list[i] + ".tif"
+        tif = TIFF.open(img_path, mode='r')
+        ar = tif.read_image()
+        for j in ar:
+            for k in j:
+                sums += k
+        if(i%100==0):
+            print(sums)
+    print(sums)
+    print(len(image_list))
+    print(sums/40479.0)
+    quit()
 
 
 cloud = ['haze', 'clear', 'cloudy', 'partly_cloudy']
 features = ['primary', 'agriculture', 'water', 'habitation', 'road', 'cultivation', 'slash_burn', 'conventional_mine', 'bare_ground', 'artisinal_mine', 'blooming', 'selective_logging', 'blow_down']
-data_file = "train_v2.csv" #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
+data_file = os.getcwd()+ "/../train/train_v2.csv" #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
+print(data_file)
 img_labels, cloud_gt, features_gt = read_data(data_file, cloud, features) #image filenames, cloud and feature ground truth arrays
+compute_statistics(img_labels)
+
+
+
+
+#end file
+
+
+
+
+
