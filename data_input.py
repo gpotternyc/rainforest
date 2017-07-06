@@ -43,42 +43,69 @@ def read_data(filename, cloud_labels, feature_labels):
 
 class AmazonDataSet(Dataset):
 
-    def __init__(self, img_list, labels_list, transform=None):
-        self.transform=transform
+    def __init__(self, img_list, labels_list, root_dir, transform=None):
+        self.images = img_list
+        self.labels = labels_list
+        self.root_dir = root_dir
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.images)
 
     def __getitem__(self,idx):
-        img_name = os.getcwd()+"/../train/train-tif-v2/" + img_list[idx] + ".tif"
-        tif = TIFF.open('img_name', mode='r')
+        img_name = os.getcwd()+"/../train/train-tif-v2/" + self.images[idx] + ".tif"
+        tif = TIFF.open(img_name, mode='r')
         image = tif.read_image()
-        sample = {'image':image, 'labels': labels[idx]}
-        #work in progress
+        sample = {'image':image, 'labels': self.labels[idx]}
+        print(sample)
+        if(self.transform):
+            sample = self.transform(sample)
 
-def compute_statistics(image_list):
+        return sample
+
+def memery(image_list):
     s_d = np.asarray([1784.32824087, 1601.11714294, 1648.08226633, 1868.17758328])
     means = np.asarray([4988.75695801, 4270.74552917, 3074.87910461, 6398.84899376])
-    m_ax = 0 #bad variable name
-    for i in range(len(image_list)):
-        img_path = os.getcwd() + "/../train/train-tif-v2/" + image_list[i] + ".tif"
-        tif = TIFF.open(img_path, mode='r')
-        ar = tif.read_image()
-        temp_max = np.amax(ar)
-        if(temp_max > m_ax):
-            m_ax = temp_max
-            print(m_ax)
-    quit()
+
+
+def toTensor(sample):
+    i, l = sample['image'], sample['labels']
+    #swap color axis because numpy image H x W x C, torch image C x H x W
+    i = i.transpose((2,0,1))
+    i = i/65536.0
+    return {'image': torch.from_numpy(i), 'labels': torch.from_numpy(l)}
+    
+
+#data_tranforms  = transforms.Compose([
+#                    ToTensor(),
+#                     transforms.Normalize([0.076124, 0.065167, 0.05692, 0.09764], [0.027227, 0.024431, 0.025148, 0.028507])
+#                ])
+
+normalize = transforms.Normalize(mean=[0.076124,0.065167, 0.05692, 0.09764], std=[0.027227, 0.024431, 0.025148, 0.028507])
+
 cloud = ['haze', 'clear', 'cloudy', 'partly_cloudy']
 features = ['primary', 'agriculture', 'water', 'habitation', 'road', 'cultivation', 'slash_burn', 'conventional_mine', 'bare_ground', 'artisinal_mine', 'blooming', 'selective_logging', 'blow_down']
 data_file = os.getcwd()+ "/../train/train_v2.csv" #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
 print(data_file)
+
 img_labels, cloud_gt, features_gt = read_data(data_file, cloud, features) #image filenames, cloud and feature ground truth arrays
-compute_statistics(img_labels)
+
+cloud_data  = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/")
+#loader = DataLoader(cloud_data)
+
+for i in range(len(cloud_data)):
+    sample = cloud_data[i]
+    print(sample)
+    print(type(sample))
+    sample = toTensor(sample)
+    sample = normalize(sample)
+    print(sample['image'].size(), sample['labels'].size())
+
+    if(i==3):
+        break
+
 
 
 
 
 #end file
-
-
-
-
-
