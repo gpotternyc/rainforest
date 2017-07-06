@@ -54,22 +54,18 @@ class AmazonDataSet(Dataset):
         #work in progress
 
 def compute_statistics(image_list):
-    sums = np.zeros(4)
+    s_d = np.asarray([1784.32824087, 1601.11714294, 1648.08226633, 1868.17758328])
+    means = np.asarray([4988.75695801, 4270.74552917, 3074.87910461, 6398.84899376])
+    m_ax = 0 #bad variable name
     for i in range(len(image_list)):
         img_path = os.getcwd() + "/../train/train-tif-v2/" + image_list[i] + ".tif"
         tif = TIFF.open(img_path, mode='r')
         ar = tif.read_image()
-        for j in ar:
-            for k in j:
-                sums += k
-        if(i%100==0):
-            print(sums)
-    print(sums)
-    print(len(image_list))
-    print(sums/40479.0)
+        temp_max = np.amax(ar)
+        if(temp_max > m_ax):
+            m_ax = temp_max
+            print(m_ax)
     quit()
-
-
 cloud = ['haze', 'clear', 'cloudy', 'partly_cloudy']
 features = ['primary', 'agriculture', 'water', 'habitation', 'road', 'cultivation', 'slash_burn', 'conventional_mine', 'bare_ground', 'artisinal_mine', 'blooming', 'selective_logging', 'blow_down']
 data_file = os.getcwd()+ "/../train/train_v2.csv" #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
