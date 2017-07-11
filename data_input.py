@@ -57,7 +57,7 @@ class AmazonDataSet(Dataset):
         tif = TIFF.open(img_name, mode='r')
         image = tif.read_image()
         sample = {'image':image, 'labels': self.labels[idx]}
-        print(sample)
+        #print(sample)
         if(self.transform):
             sample = self.transform(sample)
 
@@ -67,43 +67,46 @@ def memery(image_list):
     s_d = np.asarray([1784.32824087, 1601.11714294, 1648.08226633, 1868.17758328])
     means = np.asarray([4988.75695801, 4270.74552917, 3074.87910461, 6398.84899376])
 
-
+#Custom Transforms
 def toTensor(sample):
     i, l = sample['image'], sample['labels']
     #swap color axis because numpy image H x W x C, torch image C x H x W
     i = i.transpose((2,0,1))
+    l = l.transpose((1,0))
     i = i/65536.0
     return {'image': torch.from_numpy(i), 'labels': torch.from_numpy(l)}
-    
+
+def normalize(sample):
+    actual_normalization=transforms.Normalize(mean=[0.076124,0.065167,0.05692,0.09764],std=[0.027227,0.024431,0.025148,0.028507])
+    return {'image': actual_normalization(sample['image']), 'labels': sample['labels']}
+
 
 #data_tranforms  = transforms.Compose([
 #                    ToTensor(),
 #                     transforms.Normalize([0.076124, 0.065167, 0.05692, 0.09764], [0.027227, 0.024431, 0.025148, 0.028507])
 #                ])
 
-normalize = transforms.Normalize(mean=[0.076124,0.065167, 0.05692, 0.09764], std=[0.027227, 0.024431, 0.025148, 0.028507])
+normal =  transforms.Normalize(mean=[0.076124,0.065167, 0.05692, 0.09764], std=[0.027227, 0.024431, 0.025148, 0.028507])
 
 cloud = ['haze', 'clear', 'cloudy', 'partly_cloudy']
 features = ['primary', 'agriculture', 'water', 'habitation', 'road', 'cultivation', 'slash_burn', 'conventional_mine', 'bare_ground', 'artisinal_mine', 'blooming', 'selective_logging', 'blow_down']
 data_file = os.getcwd()+ "/../train/train_v2.csv" #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
 print(data_file)
 
-img_labels, cloud_gt, features_gt = read_data(data_file, cloud, features) #image filenames, cloud and feature ground truth arrays
+img_labels, features_gt, cloud_gt  = read_data(data_file, cloud, features) #image filenames, cloud and feature ground truth arrays
 
 cloud_data  = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/")
 #loader = DataLoader(cloud_data)
 
+#non-parallelized Data loader = for loop
 for i in range(len(cloud_data)):
     sample = cloud_data[i]
-    print(sample)
-    print(type(sample))
+    #print(sample)
+    #print(type(sample))
     sample = toTensor(sample)
-    sample = normalize(sample)
-    print(sample['image'].size(), sample['labels'].size())
-
-    if(i==3):
-        break
-
+    #print(type(sample['image']))
+    sample['image'] = normal(sample['image'])
+    #print(sample['image'].size(), sample['labels'].size())
 
 
 
