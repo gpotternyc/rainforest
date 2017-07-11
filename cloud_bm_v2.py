@@ -10,13 +10,19 @@ from torchvision import transforms, utils
 import torch.nn.functional as functional
 from torch.autograd import Variable
 
+import sys
 
 
 
-def read_data(filename, cloud_labels, feature_labels):
+def read_data(filename, cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy'],\
+	feature_labels=['primary', 'agriculture', 'water', 'habitation', 'road', 'cultivation', 'slash_burn', 'conventional_mine', 'bare_ground', 'artisinal_mine', 'blooming', 'selective_logging', 'blow_down']):
 	img, feat, cloud = [], [], []
 
-	with open(filename, 'rb') as csvfile:
+	if sys.version_info[0] == 2:
+		x = 'rb'
+	else:
+		x = 'r'
+	with open(filename, x) as csvfile:
 		next(csvfile)
 		datareader = csv.reader(csvfile, delimiter=' ', quotechar='|')
 		for row in datareader:
@@ -82,37 +88,35 @@ class Normalization(object):
 data_transform = transforms.Compose([
     ToTensor(), 
     Normalization()])
-############### End Custom Transforms ###########################
+############### End Custom Transforms ########################
+if __name__ == "__main__":
+	data_file = os.getcwd()+ "/../train/train_v2.csv" #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
 
-cloud = ['haze', 'clear', 'cloudy', 'partly_cloudy']
-features = ['primary', 'agriculture', 'water', 'habitation', 'road', 'cultivation', 'slash_burn', 'conventional_mine', 'bare_ground', 'artisinal_mine', 'blooming', 'selective_logging', 'blow_down']
-data_file = os.getcwd()+ "/../train/train_v2.csv" #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
+	img_labels, features_gt, cloud_gt  = read_data(data_file) #image filenames, feature and cloud ground truth arrays
 
-img_labels, features_gt, cloud_gt  = read_data(data_file, cloud, features) #image filenames, feature and cloud ground truth arrays
+	cloud_data  = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/")
+	transformed_cloud_data = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/", transform=data_transform)
+	dataset_loader = DataLoader(transformed_cloud_data, batch_size=32, shuffle=True, num_workers=16)
 
-cloud_data  = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/")
-transformed_cloud_data = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/", transform=data_transform)
-dataset_loader = DataLoader(transformed_cloud_data, batch_size=32, shuffle=True, num_workers=16)
+	model = models.squeezenet1_0(pretrained=true)
+	if torch.cuda:
+		model.cuda()
+	opt = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
-model = models.squeezenet1_0(pretrained=true)
-if torch.cuda:
-    model.cuda()
-opt = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
-
-model.train()
-for epoch in range(50):
-    for batch_num, (img, target) in enumerate(dataset_loader):
-        if torch.cuda:
-            img = img.cuda()
-            target = target.cuda()
-        img = normalize(img)
-        img = Variable(img); target = Variable(target)
-        opt.zero_grad()
-        out = model(img)
-        loss = functional.binary_cross_entropy(out, target)
-        loss.backward()
-        opt.step()
-        if batch_num % 50 == 0:
-            print("Epoch: {}, batch: {}".format(epoch, batch_num))
-    if (epoch+1) % 5 == 0:
-        torch.save(model, epoch)
+	model.train()
+	for epoch in range(50):
+		for batch_num, (img, target) in enumerate(dataset_loader):
+			if torch.cuda:
+				img = img.cuda()
+				target = target.cuda()
+			img = normalize(img)
+			img = Variable(img); target = Variable(target)
+			opt.zero_grad()
+			out = model(img)
+			loss = functional.binary_cross_entropy(out, target)
+			loss.backward()
+			opt.step()
+			if batch_num % 50 == 0:
+				print("Epoch: {}, batch: {}".format(epoch, batch_num))
+		if (epoch+1) % 5 == 0:
+			torch.save(model, epoch)
