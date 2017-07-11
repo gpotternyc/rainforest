@@ -6,8 +6,10 @@ import numpy as np
 from libtiff import TIFFfile, TIFFimage, TIFF
 import torch
 from torch.utils.data import Dataset, DataLoader
+import torchvision.models as models
 from torchvision import transforms, utils
 import torch.nn.functional as functional
+import torch.optim as optim
 from torch.autograd import Variable
 
 
@@ -94,25 +96,28 @@ cloud_data  = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/")
 transformed_cloud_data = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/", transform=data_transform)
 dataset_loader = DataLoader(transformed_cloud_data, batch_size=32, shuffle=True, num_workers=16)
 
-model = models.squeezenet1_0(pretrained=true)
+
+model = models.squeezenet1_0(pretrained=True)
 if torch.cuda:
     model.cuda()
 opt = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
 model.train()
 for epoch in range(50):
-    for batch_num, (img, target) in enumerate(dataset_loader):
-        if torch.cuda:
-            img = img.cuda()
-            target = target.cuda()
-        img = normalize(img)
-        img = Variable(img); target = Variable(target)
+    running_loss = 0.0
+    i=0
+    for batch in dataset_loader:
+        i+=1
+        inputs, targets = batch['image'], batch['labels']
+        if(torch.cuda):
+            inputs = inputs.cuda()
+            targets = targets.cuda()
+        inputs, targets = Variable(inputs), Variable(targets)
         opt.zero_grad()
-        out = model(img)
-        loss = functional.binary_cross_entropy(out, target)
+        outputs = model(inputs)
+        loss = functional.binary_cross_entropy(outputs, targets)
         loss.backward()
         opt.step()
-        if batch_num % 50 == 0:
-            print("Epoch: {}, batch: {}".format(epoch, batch_num))
-    if (epoch+1) % 5 == 0:
-        torch.save(model, epoch)
+        running_loss += loss.data[0]
+        if i%2000==0:
+            print(epoch+1, " ", running_loss)
