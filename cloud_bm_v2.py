@@ -122,6 +122,6 @@ if __name__ == "__main__":
 			loss = functional.binary_cross_entropy(out, targets)
 			loss.backward()
 			opt.step()
-			running_0ss += loss.data[0]
+			running_loss += loss.data[0]
 			if i%2000 == 0:
 				print(epoch+1, " ", running_loss)
