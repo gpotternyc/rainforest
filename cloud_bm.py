@@ -75,8 +75,8 @@ class Normalization(object):
         return {'image': actual_normalization(sample['image']), 'labels': sample['labels']}
 
 data_transform = transforms.Compose([
-    ToTensor()
-    Normalization()]
+    ToTensor(), 
+    Normalization()])
 ############### End Custom Transforms ###########################
 
 cloud = ['haze', 'clear', 'cloudy', 'partly_cloudy']
@@ -87,5 +87,4 @@ img_labels, features_gt, cloud_gt  = read_data(data_file, cloud, features) #imag
 
 cloud_data  = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/")
 transformed_cloud_data = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/", transform=data_transform)
-
 dataset_loader = DataLoader(transformed_cloud_data, batch_size=4, shuffle=True, num_workers=4)
