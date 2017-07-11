@@ -9,20 +9,8 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
 import torch.nn.functional as functional
 from torch.autograd import Variable
-import argparse
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--batch_size", type=int, default=32)
-parser.add_argument("--epochs", type=int, default=50)
-parser.add_argument("--disable-cuda", action="store_true", default=False)
-parser.add_argument("--lr", type=float, default=0.01)
-parser.add_argument("--momentum", type=float, default=0.5)
-parser.add_argument("--save_every", type=int, default=5)
 
-args = parser.parse_args()
-if args.cuda and not torch.cuda.is_available():
-    print("no cuda... :(")
-    args.cuda = False
 
 
 def read_data(filename, cloud_labels, feature_labels):
@@ -104,17 +92,17 @@ img_labels, features_gt, cloud_gt  = read_data(data_file, cloud, features) #imag
 
 cloud_data  = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/")
 transformed_cloud_data = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/", transform=data_transform)
-dataset_loader = DataLoader(transformed_cloud_data, batch_size=args.batch_size, shuffle=True, num_workers=16)
+dataset_loader = DataLoader(transformed_cloud_data, batch_size=32, shuffle=True, num_workers=16)
 
 model = models.squeezenet1_0(pretrained=true)
-if args.cuda:
+if torch.cuda:
     model.cuda()
-opt = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+opt = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
 model.train()
-for epoch in range(args.epochs):
+for epoch in range(50):
     for batch_num, (img, target) in enumerate(dataset_loader):
-        if args.cuda:
+        if torch.cuda:
             img = img.cuda()
             target = target.cuda()
         img = normalize(img)
@@ -126,5 +114,5 @@ for epoch in range(args.epochs):
         opt.step()
         if batch_num % 50 == 0:
             print("Epoch: {}, batch: {}".format(epoch, batch_num))
-    if (epoch+1) % args.save_every == 0:
+    if (epoch+1) % 5 == 0:
         torch.save(model, epoch)
