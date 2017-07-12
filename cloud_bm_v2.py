@@ -100,8 +100,9 @@ if __name__ == "__main__":
 	cloud_data  = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/")
 	transformed_cloud_data = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/", transform=data_transform)
 	dataset_loader = DataLoader(transformed_cloud_data, batch_size=32, shuffle=True, num_workers=16)
+	print("Data Loaded")
 
-	model = models.squeezenet1_0(pretrained=True)
+	model = models.squeezenet1_0(pretrained=False, num_classes=4)
 	if torch.cuda:
 		model.cuda()
 	opt = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
