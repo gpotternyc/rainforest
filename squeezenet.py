@@ -82,10 +82,9 @@ class SqueezeNet(nn.Module):
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5),
             final_conv,
-            #nn.ReLU(inplace=True),
-            nn.AvgPool2d(13),
-            nn.Softmax()
-        )
+            nn.ReLU(inplace=True),
+            nn.AvgPool2d(13)
+            )
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):

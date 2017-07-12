@@ -10,11 +10,12 @@ from torch.utils.data import Dataset, DataLoader
 import torchvision.models as models
 from torchvision import transforms, utils
 import torch.nn.functional as functional
+import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
 from squeezenet import squeezenet1_0
 import sys
-
+import shutil
 
 
 def read_data(filename, cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy'],\
@@ -34,16 +35,16 @@ def read_data(filename, cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy'
 
 			string_feat= [second_split[1]] + row[1:]
 
-			cloud_one_hot = np.zeros(4)			#one hot vectors
-			feature_one_hot = np.zeros(13)
+			cloud_one_hot = np.zeros(1)			#not one hot vectors
+			feature_one_hot = np.zeros(1)
 			#look for features by iterating over labels and doing string comparison
 			for element in string_feat:
 				for index,k in enumerate(feature_labels):
 					if element==k:
-						feature_one_hot[index] = 1
+						feature_one_hot[0] = index
 				for index,k in enumerate(cloud_labels):
 					if element==k:
-						cloud_one_hot[index] = 1
+						cloud_one_hot[0] = index
 
 			feat.append(feature_one_hot)
 			cloud.append(cloud_one_hot)
@@ -91,6 +92,10 @@ data_transform = transforms.Compose([
     ToTensor(), 
     Normalization()])
 ############### End Custom Transforms ########################
+def save_checkpoint(state, is_best, filename="checkpoint.pth.tar"):
+    torch.save(state, filename)
+    if is_best:
+        shutil.copyfile(filename, 'model_best.pth.tar')
 
 if __name__ == "__main__":
 	data_file = os.getcwd()+ "/../train/train_v2.csv" #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
@@ -106,26 +111,44 @@ if __name__ == "__main__":
 	if torch.cuda:
 		model.cuda()
 	opt = optim.SGD(model.parameters(), lr=0.001, momentum=0.5)
-
+	criterion = nn.CrossEntropyLoss()
 	model.train()
+	best_prec = 0
 	for epoch in range(50):
 		running_loss = 0.0
 		i=0
 		for batch in dataset_loader:
 			i+=1
 			inputs, targets = batch['image'], batch['labels']
+			targets = _TensorBase.long(targets)
+			targets = torch.squeeze(targets)
+			#print(targets.size())
 			if torch.cuda:
 				inputs = inputs.cuda()
 				targets = targets.cuda()
 			inputs = Variable(inputs); targets = Variable(targets)
 			opt.zero_grad()
 			out = model(inputs)
-			loss = functional.binary_cross_entropy(out, targets)
+			#print(out.size())
+			loss = criterion(out, targets)
 			loss.backward()
 			opt.step()
 			running_loss += loss.data[0]
+			
+			precision = running_loss/(i*32.0)
+			is_best = precision > best_prec
+			best_prec = max(best_prec, precision)
+
 			if i%10 == 0:
-				print(epoch+1, " ", running_loss)
+				print(epoch+1, " ", precision)
+			
+			save_checkpoint({
+                'epoch': epoch+1,
+                'state_dict': model.state_dict(),
+                'best_prec': best_prec,
+                'optimizer': opt.step(),
+            }, is_best)
+
 
 
 #end
