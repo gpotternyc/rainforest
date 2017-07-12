@@ -5,13 +5,14 @@ import os
 import numpy as np
 from libtiff import TIFFfile, TIFFimage, TIFF
 import torch
+from torch.tensor import _TensorBase
 from torch.utils.data import Dataset, DataLoader
 import torchvision.models as models
 from torchvision import transforms, utils
 import torch.nn.functional as functional
 import torch.optim as optim
 from torch.autograd import Variable
-
+from squeezenet import squeezenet1_0
 import sys
 
 
@@ -33,16 +34,16 @@ def read_data(filename, cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy'
 
 			string_feat= [second_split[1]] + row[1:]
 
-			cloud_one_hot = np.array([np.zeros(4)])			#one hot vectors
-			feature_one_hot = np.array([np.zeros(13)])
+			cloud_one_hot = np.zeros(4)			#one hot vectors
+			feature_one_hot = np.zeros(13)
 			#look for features by iterating over labels and doing string comparison
 			for element in string_feat:
 				for index,k in enumerate(feature_labels):
 					if element==k:
-						feature_one_hot[0][index] = 1
+						feature_one_hot[index] = 1
 				for index,k in enumerate(cloud_labels):
 					if element==k:
-						cloud_one_hot[0][index] = 1
+						cloud_one_hot[index] = 1
 
 			feat.append(feature_one_hot)
 			cloud.append(cloud_one_hot)
@@ -78,9 +79,8 @@ class ToTensor(object):
         i, l = sample['image'], sample['labels']
         #swap color axis because numpy image H x W x C, torch image C x H x W
         i = i.transpose((2,0,1))
-        l = l.transpose((1,0))
         i = i/65536.0
-        return {'image': torch.from_numpy(i), 'labels': torch.from_numpy(l)}
+        return {'image': _TensorBase.float(torch.from_numpy(i)), 'labels': _TensorBase.float(torch.from_numpy(l))}
 
 class Normalization(object):
     def __call__(self, sample):
@@ -102,10 +102,10 @@ if __name__ == "__main__":
 	dataset_loader = DataLoader(transformed_cloud_data, batch_size=32, shuffle=True, num_workers=16)
 	print("Data Loaded")
 
-	model = models.squeezenet1_0(pretrained=False, num_classes=4)
+	model = squeezenet1_0(pretrained=False, num_classes=4)
 	if torch.cuda:
 		model.cuda()
-	opt = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
+	opt = optim.SGD(model.parameters(), lr=0.001, momentum=0.5)
 
 	model.train()
 	for epoch in range(50):
@@ -124,5 +124,8 @@ if __name__ == "__main__":
 			loss.backward()
 			opt.step()
 			running_loss += loss.data[0]
-			if i%2000 == 0:
+			if i%10 == 0:
 				print(epoch+1, " ", running_loss)
+
+
+#end
