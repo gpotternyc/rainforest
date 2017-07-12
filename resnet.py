@@ -1,10 +1,20 @@
 import os
 import argparse
 import torch
+import torch.nn as nn
+from torch.nn.parameter import Parameter
 import torch.utils.data as data
 
-from resnet_data.inceptionresnetv2.pytorch_load import inceptionresnetv2
-from cloud_bm_v2 import data_transform, AmazonDataSet, read_data
+from resnet_data.inceptionresnetv2.pytorch_load import inceptionresnetv2, InceptionResnetV2
+from cloud_bm_v2 import data_transform, AmazonDataSet, read_data, train
+
+f = InceptionResnetV2.forward
+def forward(self, x):
+	x = f(self, x)
+	x = self.act(x)
+	x = self.last(x)
+	return x
+InceptionResnetV2.forward = forward
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--load_weights", default=None, type=str)
@@ -12,13 +22,14 @@ parser.add_argument("--img_dir", default="train/train-tif-v2/", type=str)
 args = parser.parse_args()
 
 in_res = inceptionresnetv2()
-x = in_res.conv2d_1a.conv.weights 
-in_res.conv2d_1a.conv.weights = torch.Tensor(
-                in_res.conv2d_1a.conv.in_channels+1, in_res.conv2d_1a.conv.out_channels // in_res.conv2d_1a.conv.groups,
-				*in_res.conv2d_1a.conv.kernel_size)
+in_res.act = nn.ReLU(inplace=False)
+in_res.last = nn.Linear(1001, 13)
+x = in_res.conv2d_1a.conv.weight.data.clone()
+y = torch.Tensor(*x.size())
 for i in range(3):
-	in_res.conv2d_1a.conv.weights[i, :, :] = x[i]
-in_res.conv2d_1a.conv.weights[3, :, :] = (x[0]+x[1]+x[2])/3.0
+	y[i] = x[i]
+y[3] = (x[0]+x[1]+x[2])/3.0
+in_res.conv2d_1a.conv.weight = Parameter(y)
 
 if args.load_weights:
 	print("Loaded weights from {}".format(args.load_weights))
@@ -30,3 +41,4 @@ features_ds = AmazonDataSet(img_labels, features_gt, args.img_dir)
 transformed_cloud_data = AmazonDataSet(img_labels, features_gt, args.img_dir, transform=data_transform)
 dataset_loader = data.DataLoader(transformed_cloud_data, batch_size=32, shuffle=True, num_workers=16)
 
+train(in_res, dataset_loader)

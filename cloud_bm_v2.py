@@ -96,18 +96,7 @@ def save_checkpoint(state, is_best, filename="checkpoint.pth.tar"):
     torch.save(state, filename)
     if is_best:
         shutil.copyfile(filename, 'model_best.pth.tar')
-
-if __name__ == "__main__":
-	data_file = os.getcwd()+ "/../train/train_v2.csv" #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
-
-	img_labels, features_gt, cloud_gt  = read_data(data_file) #image filenames, feature and cloud ground truth arrays
-
-	cloud_data  = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/")
-	transformed_cloud_data = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/", transform=data_transform)
-	dataset_loader = DataLoader(transformed_cloud_data, batch_size=32, shuffle=True, num_workers=16)
-	print("Data Loaded")
-
-	model = squeezenet1_0(pretrained=False, num_classes=4)
+def train(model, dataset_loader):
 	if torch.cuda:
 		model.cuda()
 	opt = optim.SGD(model.parameters(), lr=0.001, momentum=0.5)
@@ -122,14 +111,14 @@ if __name__ == "__main__":
 			inputs, targets = batch['image'], batch['labels']
 			targets = _TensorBase.long(targets)
 			targets = torch.squeeze(targets)
-			#print(targets.size())
+
 			if torch.cuda:
 				inputs = inputs.cuda()
 				targets = targets.cuda()
 			inputs = Variable(inputs); targets = Variable(targets)
 			opt.zero_grad()
 			out = model(inputs)
-			#print(out.size())
+
 			loss = criterion(out, targets)
 			loss.backward()
 			opt.step()
@@ -149,6 +138,19 @@ if __name__ == "__main__":
                 'optimizer': opt.step(),
             }, is_best)
 
+
+if __name__ == "__main__":
+	data_file = os.getcwd()+ "/../train/train_v2.csv" #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
+
+	img_labels, features_gt, cloud_gt  = read_data(data_file) #image filenames, feature and cloud ground truth arrays
+
+	cloud_data  = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/")
+	transformed_cloud_data = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/", transform=data_transform)
+	dataset_loader = DataLoader(transformed_cloud_data, batch_size=32, shuffle=True, num_workers=16)
+	print("Data Loaded")
+
+	model = squeezenet1_0(pretrained=False, num_classes=4)
+	train(model, dataset_loader)
 
 
 #end
