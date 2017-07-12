@@ -12,6 +12,13 @@ parser.add_argument("--img_dir", default="train/train-tif-v2/", type=str)
 args = parser.parse_args()
 
 in_res = inceptionresnetv2()
+x = in_res.conv2d_1a.weights 
+in_res.conv2d_1a.weights = torch.Tensor(
+                in_res.conv2d_1a.in_channels+1, in_res.conv2d_1a.out_channels // in_res.conv2d_1a.groups,
+				*in_res.conv2d_1a.kernel_size)
+for i in range(3):
+	in_res.conv2d_1a.weights[i, :, :] = x[i]
+in_res.conv2d_1a.weights[3, :, :] = (x[0]+x[1]+x[2])/3.0
 
 if args.load_weights:
 	print("Loaded weights from {}".format(args.load_weights))
