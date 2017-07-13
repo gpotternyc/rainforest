@@ -73,9 +73,7 @@ class AmazonDataSet(Dataset):
         if(self.transform):
             sample = self.transform(sample)
         print(self.channels)
-        if(self.channels==3):
-            print("this is a test to see if this works")
-            quit()
+        sample['image'] = sample['image'].narrow(0,0,self.channels)
         return sample
 
 ############## Custom Transforms ####################################
