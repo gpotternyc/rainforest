@@ -24,12 +24,14 @@ args = parser.parse_args()
 in_res = inceptionresnetv2()
 in_res.act = nn.ReLU(inplace=False)
 in_res.last = nn.Linear(1001, 13)
+t = nn.Conv2d(4, 32, kernel_size=3, stride=2)
 x = in_res.conv2d_1a.conv.weight.data.clone()
 y = torch.Tensor(*x.size())
 for i in range(3):
 	y[i] = x[i]
 y[3] = (x[0]+x[1]+x[2])/3.0
-in_res.conv2d_1a.conv.weight = Parameter(y)
+t.weight.data = y
+in_res.conv2d_1a.conv = t
 
 if args.load_weights:
 	print("Loaded weights from {}".format(args.load_weights))
