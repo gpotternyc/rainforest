@@ -26,7 +26,12 @@ in_res.act = nn.ReLU(inplace=False)
 in_res.last = nn.Linear(1001, 13)
 t = nn.Conv2d(4, 32, kernel_size=3, stride=2)
 x = in_res.conv2d_1a.conv.weight.data.clone()
-y = torch.Tensor(*x.size())
+s = x.size();
+l = []
+for i in s:
+	l.append(i)
+l[1] += 1
+y = torch.Tensor(tuple(l))
 for i in range(3):
 	y[i] = x[i]
 y[3] = (x[0]+x[1]+x[2])/3.0
