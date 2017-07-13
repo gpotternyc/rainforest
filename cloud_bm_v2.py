@@ -72,7 +72,6 @@ class AmazonDataSet(Dataset):
         #print(sample)
         if(self.transform):
             sample = self.transform(sample)
-        print(self.channels)
         sample['image'] = sample['image'].narrow(0,0,self.channels)
         return sample
 
