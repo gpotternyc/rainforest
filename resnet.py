@@ -33,8 +33,8 @@ for i in s:
 l[1] += 1
 y = torch.Tensor(tuple(l))
 for i in range(3):
-	y[i] = x[i]
-y[3] = (x[0]+x[1]+x[2])/3.0
+	y[:, i, :] = x[:, i, :]
+y[:, 3, :] = (x[:, 0, :]+x[:, 1, :]+x[:, 2, :])/3.0
 t.weight.data = y
 in_res.conv2d_1a.conv = t
 
