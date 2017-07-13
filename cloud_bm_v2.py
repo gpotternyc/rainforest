@@ -36,12 +36,12 @@ def read_data(filename, cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy'
 			string_feat= [second_split[1]] + row[1:]
 
 			cloud_one_hot = np.zeros(1)			#not one hot vectors
-			feature_one_hot = np.zeros(1)
+			feature_one_hot = np.zeros(13)
 			#look for features by iterating over labels and doing string comparison
 			for element in string_feat:
 				for index,k in enumerate(feature_labels):
 					if element==k:
-						feature_one_hot[0] = index
+						feature_one_hot[index] = 1
 				for index,k in enumerate(cloud_labels):
 					if element==k:
 						cloud_one_hot[0] = index
@@ -54,10 +54,11 @@ def read_data(filename, cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy'
 
 class AmazonDataSet(Dataset):
 
-    def __init__(self, img_list, labels_list, root_dir, transform=None):
+    def __init__(self, img_list, labels_list, root_dir, channels, transform=None):
         self.images = img_list
         self.labels = labels_list
         self.root_dir = root_dir
+        self.channels = channels
         self.transform = transform
 
     def __len__(self):
@@ -71,7 +72,10 @@ class AmazonDataSet(Dataset):
         #print(sample)
         if(self.transform):
             sample = self.transform(sample)
-
+        print(self.channels)
+        if(self.channels==3):
+            print("this is a test to see if this works")
+            quit()
         return sample
 
 ############## Custom Transforms ####################################
@@ -110,13 +114,20 @@ def train(model, dataset_loader):
 			i+=1
 			inputs, targets = batch['image'], batch['labels']
 			targets = _TensorBase.long(targets)
-			targets = torch.squeeze(targets)
 
+			if (int(targets.size()[1])==1): #cloud-bm
+			    targets = torch.squeeze(targets) #one-number output indicating one-hot nature
+			
 			if torch.cuda:
 				inputs = inputs.cuda()
 				targets = targets.cuda()
+			
 			inputs = Variable(inputs); targets = Variable(targets)
 			opt.zero_grad()
+			f = open("log.txt", "w")
+			f.write(str(inputs.size()))
+			f.write(str(targets.size()))
+			f.close()
 			out = model(inputs)
 
 			loss = criterion(out, targets)
@@ -144,8 +155,8 @@ if __name__ == "__main__":
 
 	img_labels, features_gt, cloud_gt  = read_data(data_file) #image filenames, feature and cloud ground truth arrays
 
-	cloud_data  = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/")
-	transformed_cloud_data = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/", transform=data_transform)
+	cloud_data  = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/", 4)
+	transformed_cloud_data = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/", 4, transform=data_transform)
 	dataset_loader = DataLoader(transformed_cloud_data, batch_size=32, shuffle=True, num_workers=16)
 	print("Data Loaded")
 
