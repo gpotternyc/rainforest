@@ -12,53 +12,67 @@ from torchvision import transforms
 from resnet_data.inceptionresnetv2.pytorch_load import inceptionresnetv2, InceptionResnetV2
 from cloud_bm_v2 import ToTensor, Normalization, AmazonDataSet, read_data, train
 
-f = InceptionResnetV2.forward
-def forward(self, x):
-	x = f(self, x)
-	x = self.act(x)
-	x = self.last(x)
-	return x
-InceptionResnetV2.forward = forward
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--load_weights", default=None, type=str)
-parser.add_argument("--img_dir", default="train/train-tif-v2/", type=str)
-args = parser.parse_args()
+def get_resnet(device_ids):
+    f = InceptionResnetV2.forward
+    def forward(self, x):
+        x = f(self, x)
+        x = self.act(x)
+        x = self.last(x)
+        return x
+    InceptionResnetV2.forward = forward
 
-in_res = inceptionresnetv2()
-in_res.act = nn.ReLU(inplace=False)
-in_res.last = nn.Linear(1001, 13)
+    in_res = inceptionresnetv2()
+    in_res.act = nn.ReLU(inplace=False)
+    in_res.last = nn.Linear(1001, 13)
+
+    x = in_res.conv2d_1a.conv.weight.data.numpy()
+    s = x.shape
+    l = []
+    for i in s:
+        l.append(i)
+    l[1] += 1
+    y = np.ones(tuple(l))
+    for i in range(3):
+        y[:, i, :] = x[:, i, :]
+    y[:, 3, :] = (x[:, 0, :]+x[:, 1, :]+x[:, 2, :])/3.0
+    in_res.conv2d_1a.conv.weight.data = torch.from_numpy(y).float()
+    in_res.conv2d_1a.conv.in_channels = 4
+
+    parallelize = ['conv2d_1a', 'conv2d_2a', 'conv2d_2b', 'conv2d_3b', 'conv2d_4a',
+                    'mixed_5b', 'repeat', 'mixed_6a', 'repeat_1', 'mixed_7a',
+                    'repeat_2', 'block8', 'conv2d_7b']
+    m = []
+    for x in parallelize:
+        m.append(getattr(in_res, x))
+        setattr(in_res, x, nn.DataParallel(m[-1], device_ids=device_ids))
+    return in_res
 
 class Scale(object):
     def __call__(self, sample):
         x = imresize(sample['image'], (299, 299))
         return {'image': x, 'labels': sample['labels']}
-data_transform = transforms.Compose([
-    Scale(),
-    ToTensor(),
-    Normalization(),
-])
 
-x = in_res.conv2d_1a.conv.weight.data.numpy()
-s = x.shape;
-print(s)
-l = []
-for i in s:
-	l.append(i)
-l[1] += 1
-y = np.ones(tuple(l))
-for i in range(3):
-	y[:, i, :] = x[:, i, :]
-y[:, 3, :] = (x[:, 0, :]+x[:, 1, :]+x[:, 2, :])/3.0
-in_res.conv2d_1a.conv.weight.data = torch.from_numpy(y).float()
-in_res.conv2d_1a.conv.in_channels = 4
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--load_weights", default=None, type=str)
+    parser.add_argument("--img_dir", default="train/train-tif-v2/", type=str)
+    args = parser.parse_args()
+    
+    in_res = get_resnet([0,1,2,3])
 
-if args.load_weights:
-	print("Loaded weights from {}".format(args.load_weights))
-	in_res.load_weights(args.load_weights)
+    data_transform = transforms.Compose([
+        Scale(),
+        ToTensor(),
+        Normalization(),
+    ])
 
-img_labels, features_gt, _  = read_data("../train/train_v2.csv")
-transformed_cloud_data = AmazonDataSet(img_labels, features_gt, args.img_dir,4, transform=data_transform)
-dataset_loader = data.DataLoader(transformed_cloud_data, batch_size=32, shuffle=True, num_workers=16)
+    if args.load_weights:
+        print("Loaded weights from {}".format(args.load_weights))
+        in_res.load_weights(args.load_weights)
 
-train(in_res, dataset_loader)
+    img_labels, features_gt, _  = read_data("../train/train_v2.csv")
+    transformed_cloud_data = AmazonDataSet(img_labels, features_gt, args.img_dir,4, transform=data_transform)
+    dataset_loader = data.DataLoader(transformed_cloud_data, batch_size=128, shuffle=True, num_workers=16)
+
+    train(in_res, dataset_loader)
