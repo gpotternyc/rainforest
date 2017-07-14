@@ -89,6 +89,7 @@ class Normalization(object):
         actual_normalization=transforms.Normalize(mean=[0.076124,0.065167,0.05692,0.09764],std=[0.027227,0.024431,0.025148,0.028507])
         return {'image': actual_normalization(sample['image']), 'labels': sample['labels']}
 
+
 data_transform = transforms.Compose([
     ToTensor(), 
     Normalization()])
@@ -101,7 +102,7 @@ def train(model, dataset_loader):
 	if torch.cuda:
 		model.cuda()
 	opt = optim.SGD(model.parameters(), lr=0.001, momentum=0.5)
-	criterion = nn.CrossEntropyLoss()
+	criterion = nn.MSELoss()
 	model.train()
 	best_prec = 0
 	for epoch in range(50):
@@ -110,21 +111,13 @@ def train(model, dataset_loader):
 		for batch in dataset_loader:
 			i+=1
 			inputs, targets = batch['image'], batch['labels']
-			targets = _TensorBase.long(targets)
-
-			if (int(targets.size()[1])==1): #cloud-bm
-			    targets = torch.squeeze(targets) #one-number output indicating one-hot nature
+			targets = torch.squeeze(targets)
 			
 			if torch.cuda:
 				inputs = inputs.cuda()
 				targets = targets.cuda()
-			
 			inputs = Variable(inputs); targets = Variable(targets)
 			opt.zero_grad()
-			f = open("log.txt", "w")
-			f.write(str(inputs.size()))
-			f.write(str(targets.size()))
-			f.close()
 			out = model(inputs)
 
 			loss = criterion(out, targets)
@@ -137,7 +130,7 @@ def train(model, dataset_loader):
 			best_prec = max(best_prec, precision)
 
 			if i%10 == 0:
-				print(epoch+1, " ", precision)
+				print(epoch+1, precision)
 			
 			save_checkpoint({
                 'epoch': epoch+1,
