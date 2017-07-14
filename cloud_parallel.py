@@ -94,13 +94,13 @@ data_transform = transforms.Compose([
     ToTensor(), 
     Normalization()])
 ############### End Custom Transforms ########################
-def save_checkpoint(state, is_best, filename="checkpoint.pth.tar"):
+def save_checkpoint(state, is_best, filename="parallel_checkpoint.pth.tar"):
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'model_best.pth.tar')
+        shutil.copyfile(filename, 'parallel_model_best.pth.tar')
 def train(model, dataset_loader):
 	if torch.cuda:
-		model.cuda()
+		model = nn.DataParallel(model, device_ids=[0,1,2]).cuda()
 	opt = optim.SGD(model.parameters(), lr=0.001, momentum=0.5)
 	criterion = nn.MSELoss()
 	model.train()
@@ -131,8 +131,8 @@ def train(model, dataset_loader):
 
 			if i%10 == 0:
 				print(epoch+1, precision)
-			if(is_best):
-			    save_checkpoint({
+				if(is_best):
+				    save_checkpoint({
                     'epoch': epoch+1,
                     'state_dict': model.state_dict(),
                     'best_prec': best_prec,
