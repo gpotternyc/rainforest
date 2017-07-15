@@ -17,6 +17,9 @@ from squeezenet import squeezenet1_0
 import sys
 import shutil
 
+import time
+from pycrayon import CrayonClient
+
 
 def read_data(filename, cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy'],\
 	feature_labels=['primary', 'agriculture', 'water', 'habitation', 'road', 'cultivation', 'slash_burn', 'conventional_mine', 'bare_ground', 'artisinal_mine', 'blooming', 'selective_logging', 'blow_down']):
@@ -99,6 +102,8 @@ def save_checkpoint(state, is_best, filename="checkpoint.pth.tar"):
     if is_best:
         shutil.copyfile(filename, 'model_best.pth.tar')
 def train(model, dataset_loader):
+	c = CrayonClient(hostname="localhost")
+	d = c.create_experiment("123")
 	if torch.cuda:
 		model.cuda()
 	opt = optim.SGD(model.parameters(), lr=0.001, momentum=0.5)
@@ -122,6 +127,7 @@ def train(model, dataset_loader):
 
 			loss = criterion(out, targets)
 			loss.backward()
+			d.add_scalar_value("loss", loss.data[0])
 			opt.step()
 			running_loss += loss.data[0]
 			
