@@ -43,7 +43,7 @@ def read_data(filename, cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy'
 			string_feat= [second_split[1]] + row[1:]
 
 			cloud_one_hot = np.zeros(4)			#not one hot vectors
-			feature_one_hot = np.zeros(13)
+			feature_one_hot = np.zeros(1)
 			#look for features by iterating over labels and doing string comparison
 			for element in string_feat:
 				for index,k in enumerate(feature_labels):
@@ -51,7 +51,7 @@ def read_data(filename, cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy'
 						feature_one_hot[index] = 1
 				for index,k in enumerate(cloud_labels):
 					if element==k:
-						cloud_one_hot[index] = 1
+						cloud_one_hot[0] = index
 
 			feat.append(feature_one_hot)
 			cloud.append(cloud_one_hot)
