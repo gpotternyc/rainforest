@@ -136,7 +136,7 @@ val_transform = transforms.Compose([
     Normalization()])
 ############### End Custom Transforms ########################
 ############### Validation ###################################
-def validate(model, val_loader):
+def validate(model, val_loader, batch_size):
     if torch.cuda:
         model.cuda()
 
@@ -159,18 +159,18 @@ def validate(model, val_loader):
         running_loss += loss.data[0]
 
     print("***Validation***")
-    print(running_loss/(i*32.0))
+    print(running_loss/(i*batch_size*1.0))
     print("*End Validation*")
 
     model.train()
-    return running_loss/(i*32.0)
+    return running_loss/(i*batch_size*1.0)
 
 ############# End Validation ##################################
 
 def save_checkpoint(state, is_best, filename="validation.pth.tar"):
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'model_cloud_bm.pth.tar')
+        shutil.copyfile(filename, 'model_resnet.pth.tar')
 
 def precise(precision, best_prec, epoch, model, opt,i, is_train):
     is_best = precision > best_prec
@@ -187,6 +187,7 @@ def precise(precision, best_prec, epoch, model, opt,i, is_train):
                 'optimizer': opt.step(),
             }, is_best, filename="train.pth.tar")
         else: #validation
+            print("Writing Validation")
             save_checkpoint({
                 'epoch': epoch+1,
                 'state_dict': model.state_dict(),
@@ -196,7 +197,7 @@ def precise(precision, best_prec, epoch, model, opt,i, is_train):
 
     return best_prec
 
-def train(model, dataset_loader, val_loader):
+def train(model, dataset_loader, val_loader, batch_size):
 	#c = CrayonClient(hostname="localhost")
 	#d = c.create_experiment("123")
 	if torch.cuda:
@@ -228,10 +229,15 @@ def train(model, dataset_loader, val_loader):
 			running_loss += loss.data[0]
             
 			#Training Set Loss (Computationally Inexpensive)
-			precision = running_loss/(i*32.0)
-			best_prec = precise(precision, best_prec, epoch, model, opt,i,True)
-		precision = validate(model, val_loader)
-		best_val = precise(precision, best_val, epoch, model, opt,i, False)
+			precision = running_loss/(i*batch_size*1.0)
+			best_prec = precise(precision, best_prec, epoch, model, opt, i, True)
+			if(i==(17740//batch_size)):
+			    print("Mid-epoch Validation check")
+			    precision=validate(model, val_loader)
+			    best_val = precise(precision, best_val, epoch, model, opt, i, False)
+		
+		precision = validate(model, val_loader, batch_size)
+		best_val = precise(precision, best_val, epoch, model, opt, i, False)
 
 
 
@@ -250,7 +256,7 @@ if __name__ == "__main__":
     print("Validation Loaded")
 
     model = squeezenet1_0(pretrained=False, num_classes=4)
-    train(model, dataset_loader, validation_loader)
+    train(model, dataset_loader, validation_loader, 32)
 
 
 #end
