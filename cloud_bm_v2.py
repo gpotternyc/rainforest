@@ -133,12 +133,12 @@ def save_checkpoint(state, is_best, filename="validation.pth.tar"):
     if is_best:
         shutil.copyfile(filename, 'model_cloud_bm.pth.tar')
 
-def precise(precision, best_prec, is_train)
+def precise(precision, best_prec, epoch, model, opt,i, is_train):
     is_best = precision > best_prec
     best_prec = max(best_prec, precision)
-
-    if i%10 == 0:
-        print(epoch+1, precision)
+    if(is_train):
+        if i%10 == 0:
+            print(epoch+1, precision)
     if(is_best):
         if(is_train):
             save_checkpoint({
@@ -166,7 +166,7 @@ def train(model, dataset_loader, val_loader):
 	criterion = nn.MSELoss()
 	model.train()
 	best_prec = 0
-    best_val = 0
+	best_val = 0
 	for epoch in range(50):
 		running_loss = 0.0
 		i=0
@@ -190,11 +190,9 @@ def train(model, dataset_loader, val_loader):
             
 			#Training Set Loss (Computationally Inexpensive)
 			precision = running_loss/(i*32.0)
-            print(precision)
-            best_prec = precise(precision, best_prec, True)
-	   #Validation Every Epoch Because of Time Constraints
-       precision = validate(model, val_loader)
-       best_val = precise(precision, best_val, False)
+			best_prec = precise(precision, best_prec, epoch, model, opt,i,True)
+		precision = validate(model, val_loader)
+		best_val = precise(precision, best_val, epoch, model, opt,i, False)
 
 
 
