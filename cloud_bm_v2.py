@@ -187,7 +187,7 @@ def precise(precision, best_prec, epoch, tot_batches, model, opt,i, is_train):
     return best_prec
 
 LR = .001
-steps = (70000, 150000, 315000)
+steps = (2000, 5000, 9000, 12000)
 def lr(opt, gamma, st):
 	new = LR * (gamma ** st)
 	for p in opt.param_groups:
@@ -218,7 +218,7 @@ def train(model, dataset_loader, val_loader, batch_size):
 		for batch in dataset_loader:
 			if tot_batches in steps:
 				st += 1
-			lr(opt, .1, st)
+			lr(opt, .3, st)
 			tot_batches += 1
 			i+=1
 			inputs, targets = batch['image'], batch['labels']
@@ -242,8 +242,8 @@ def train(model, dataset_loader, val_loader, batch_size):
 			precision = running_loss/(i*1.0)
 			best_prec = precise(precision, best_prec, epoch, tot_batches, model, opt, i, True)
 			#if i % 2 == 1:
-			if tot_batches % 10000 == 10000-1:
-			    print("Mid-epoch Validation check")
+			if tot_batches % 324 == 324-1:
+			    print("Validation check")
 			    precision=validate(model, val_loader, batch_size)
 			    d.add_scalar_value("val loss", precision)
 			    best_val = precise(precision, best_val, epoch, tot_batches, model, opt, i, False)
