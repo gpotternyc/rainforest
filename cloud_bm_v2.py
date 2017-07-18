@@ -187,7 +187,7 @@ def precise(precision, best_prec, epoch, tot_batches, model, opt,i, is_train):
 
     return best_prec
 
-LR = .001
+LR = .0003
 steps = (2, 5, 10, 15)
 def lr(opt, gamma, tot_batches, batches_per_epoch):
 	st = 0
@@ -199,7 +199,7 @@ def lr(opt, gamma, tot_batches, batches_per_epoch):
 		p['lr'] = new
 	 
 def train(model, dataset_loader, val_loader, batch_size):
-	x = 1000
+	x = 2000
 	if use_crayon:
 		c = CrayonClient(hostname="localhost")
 		for _ in range(1000):
@@ -210,7 +210,7 @@ def train(model, dataset_loader, val_loader, batch_size):
 		print("Tensorboard: {}".format(x))
 	if torch.cuda:
 		model.cuda()
-	opt = optim.SGD(model.parameters(), lr=LR, momentum=0.5)
+	opt = optim.Adam(model.parameters(), lr=LR, weight_decay=.001)
 	criterion = nn.MSELoss()
 	model.train()
 	best_prec = 2e15
@@ -224,7 +224,7 @@ def train(model, dataset_loader, val_loader, batch_size):
 		running_loss = 0.0
 		i=0
 		for batch in dataset_loader:
-			lr(opt, .3, tot_batches, len(dataset_loader))
+			#lr(opt, .3, tot_batches, len(dataset_loader))
 			tot_batches += 1
 			i+=1
 			inputs, targets = batch['image'], batch['labels']
