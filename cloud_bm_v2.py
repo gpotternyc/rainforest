@@ -14,6 +14,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
 from squeezenet import squeezenet1_0
+from scipy.misc import imresize
 import sys
 import shutil
 import random
@@ -95,31 +96,32 @@ class Normalization(object):
 
 class Scale(object):
     def __call__(self, sample):
-        x = imresize(sample['image'], (299, 299))
+        x = Image.fromarray(imresize(sample['image'], (299, 299)))
         return {'image': x, 'labels': sample['labels']}
 
 class RandomHorizontalFlip(object):
     def __call__(self, sample):
-        x = sample['image']
+        x = np.array(sample['image'])
         y = sample['labels']
-        return {'image': transforms.RandomHorizontalFlip(x), 'labels': y}
+        if random.random() <= .5:
+            x = x[::-1, :, :]
+        return {'image': x, 'labels': y}
 
 class RandomSizedCrop(object):
+    def __init__(self):
+        self.t = transforms.RandomSizedCrop(299)
     def __call__(self, sample):
-        x = sample['image']
+        x = Image.fromarray(sample['image'])
         y = sample['labels']
-        return {'image': transforms.RandomSizedCrop(x, 299), 'labels': y}
+        return {'image': np.array(self.t(x)), 'labels': y}
 
 class RandomVerticalFlip(object):
     def __call__(self, sample):
-        x = sample['image']
+        x = np.array(sample['image'])
         y = sample['labels']
         if random.random() <= .5:
-            return {'image': x.transpose(Image.FLIP_TOP_BOTTOM), 'labels': y}
-        else:
-            return sample
-
-
+            x = x[:, ::-1, :]
+        return {'image': x, 'labels': y}
 
 data_transform = transforms.Compose([
     Scale(),
