@@ -180,15 +180,19 @@ def precise(precision, best_prec, epoch, tot_batches, model, opt,i, is_train):
     if(is_train):
         if i%10 == 0:
             print(epoch+1, precision)
-    if not is_train:
+    else:
 	    print("Writing Validation")
 	    save_checkpoint(model.state_dict(), is_best, filename="validation-{}.pth.tar".format(tot_batches))
 
     return best_prec
 
 LR = .001
-steps = (2000, 5000, 9000, 12000)
-def lr(opt, gamma, st):
+steps = (2, 5, 10, 15)
+def lr(opt, gamma, tot_batches, batches_per_epoch):
+	st = 0
+	for i in steps:
+		if tot_batches / (batches_per_epoch+0.0) > i:
+			st += 1
 	new = LR * (gamma ** st)
 	for p in opt.param_groups:
 		p['lr'] = new
@@ -208,17 +212,18 @@ def train(model, dataset_loader, val_loader, batch_size):
 	opt = optim.SGD(model.parameters(), lr=LR, momentum=0.5)
 	criterion = nn.MSELoss()
 	model.train()
-	best_prec = 0
-	best_val = 0
+	best_prec = 2e15
+	best_val = 2e15
 	tot_batches = 0
 	st = 0
+	validate_every = int(.3 * len(dataset_loader))
+	print("Validating every {} batches".format(validate_every))
+
 	for epoch in range(50):
 		running_loss = 0.0
 		i=0
 		for batch in dataset_loader:
-			if tot_batches in steps:
-				st += 1
-			lr(opt, .3, st)
+			lr(opt, .3, tot_batches, len(dataset_loader))
 			tot_batches += 1
 			i+=1
 			inputs, targets = batch['image'], batch['labels']
@@ -242,10 +247,11 @@ def train(model, dataset_loader, val_loader, batch_size):
 			precision = running_loss/(i*1.0)
 			best_prec = precise(precision, best_prec, epoch, tot_batches, model, opt, i, True)
 			#if i % 2 == 1:
-			if tot_batches % 324 == 324-1:
+			if tot_batches % validate_every == validate_every-1:
 			    print("Validation check")
 			    precision=validate(model, val_loader, batch_size)
-			    d.add_scalar_value("val loss", precision)
+			    if use_crayon:
+				    d.add_scalar_value("val loss", precision)
 			    best_val = precise(precision, best_val, epoch, tot_batches, model, opt, i, False)
 		
 		#precision = validate(model, val_loader, batch_size)

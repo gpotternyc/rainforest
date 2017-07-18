@@ -70,8 +70,8 @@ if __name__ == "__main__":
         Normalization()])
 
     if args.load_weights:
+        in_res.load_state_dict(torch.load(args.load_weights))
         print("Loaded weights from {}".format(args.load_weights))
-        in_res.load_weights(args.load_weights)
 
     img_labels, features_gt, _  = read_data("train.csv")
     val_img, val_features, val_cloud = read_data("validation.csv")

@@ -49,6 +49,7 @@ def get_resnet(device_ids):
     return in_res
 
 if __name__ == "__main__":
+    print("Started")
     parser = argparse.ArgumentParser()
     parser.add_argument("--load_weights", default=None, type=str)
     parser.add_argument("--img_dir", default="train/train-tif-v2/", type=str)
@@ -56,6 +57,7 @@ if __name__ == "__main__":
     batch_size = 32
     
     in_res = get_resnet([0, 1])
+    print("Batch size: {}".format(batch_size))
 
     data_transform = transforms.Compose([
         Scale(),
@@ -71,8 +73,8 @@ if __name__ == "__main__":
         Normalization()])
 
     if args.load_weights:
+        in_res.load_state_dict(torch.load(args.load_weights))
         print("Loaded weights from {}".format(args.load_weights))
-        in_res.load_weights(args.load_weights)
 
     img_labels, features_gt, cloud_gt  = read_data("train.csv")
     val_img, val_features, val_cloud = read_data("validation.csv")
