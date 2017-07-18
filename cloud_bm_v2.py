@@ -235,7 +235,7 @@ def train(model, dataset_loader, val_loader, batch_size):
 			#Training Set Loss (Computationally Inexpensive)
 			precision = running_loss/(i*1.0)
 			best_prec = precise(precision, best_prec, epoch, model, opt, i, True)
-			if(i==(400//batch_size)):
+			if(i==(17740//batch_size)):
 			    print("Mid-epoch Validation check")
 			    precision=validate(model, val_loader, batch_size)
 			    best_val = precise(precision, best_val, epoch, model, opt, i, False)
