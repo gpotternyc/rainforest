@@ -18,13 +18,17 @@ def get_resnet(device_ids):
     def forward(self, x):
         x = f(self, x)
         x = self.act(x)
+        x = self.dropout1(x)
         x = self.last(x)
+        x = self.dropout2(x)
         return x
     InceptionResnetV2.forward = forward
 
     in_res = inceptionresnetv2()
     in_res.act = nn.ReLU(inplace=False)
     in_res.last = nn.Linear(1001, 13)
+    in_res.dropout1 = nn.Dropout(.3)
+    in_res.dropout2 = nn.Dropout(.2)
 
     x = in_res.conv2d_1a.conv.weight.data.numpy()
     s = x.shape

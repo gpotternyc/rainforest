@@ -198,7 +198,7 @@ def lr(opt, gamma, tot_batches, batches_per_epoch):
 	for p in opt.param_groups:
 		p['lr'] = new
 	 
-def train(model, dataset_loader, val_loader, batch_size):
+def train(model, dataset_loader, val_loader, batch_size, crit="MSE"):
 	x = 2000
 	if use_crayon:
 		c = CrayonClient(hostname="localhost")
@@ -211,7 +211,13 @@ def train(model, dataset_loader, val_loader, batch_size):
 	if torch.cuda:
 		model.cuda()
 	opt = optim.Adam(model.parameters(), lr=LR, weight_decay=.001)
-	criterion = nn.MSELoss()
+	if crit == "MSE":
+		criterion = nn.MSELoss()
+	elif crit == "CrossEntropy":
+		criterion = nn.CrossEntropyLoss()
+	else:
+		print("unrecognized loss function {}".format(crit))
+		exit(1)
 	model.train()
 	best_prec = 2e15
 	best_val = 2e15
@@ -229,6 +235,8 @@ def train(model, dataset_loader, val_loader, batch_size):
 			i+=1
 			inputs, targets = batch['image'], batch['labels']
 			targets = torch.squeeze(targets)
+			if crit == "CrossEntropy":
+				targets = targets.long()
 			
 			if torch.cuda:
 				inputs = inputs.cuda()
