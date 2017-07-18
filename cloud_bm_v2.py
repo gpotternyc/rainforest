@@ -92,8 +92,39 @@ class Normalization(object):
         actual_normalization=transforms.Normalize(mean=[0.076124,0.065167,0.05692,0.09764],std=[0.027227,0.024431,0.025148,0.028507])
         return {'image': actual_normalization(sample['image']), 'labels': sample['labels']}
 
+class Scale(object):
+    def __call__(self, sample):
+        x = imresize(sample['image'], (299, 299))
+        return {'image': x, 'labels': sample['labels']}
+
+class RandomHorizontalFlip(object):
+    def __call__(self, sample):
+        x = sample['image']
+        y = sample['labels']
+        return {'image': transforms.RandomHorizontalFlip(x), 'labels': y}
+
+class RandomSizedCrop(object):
+    def __call__(self, sample):
+        x = sample['image']
+        y = sample['labels']
+        return {'image': transforms.RandomSizedCrop(x, 299), 'labels': y}
+
+class RandomVerticalFlip(object):
+    def __call__(self, sample):
+        x = sample['image']
+        y = sample['labels']
+        if random.random() <= .5:
+            return {'image': x.transpose(Image.FLIP_TOP_BOTTOM), 'labels': y}
+        else:
+            return sample
+
+
 
 data_transform = transforms.Compose([
+    Scale(),
+    RandomHorizontalFlip(),
+    RandomVerticalFlip(),
+    RandomSizedCrop(),
     ToTensor(), 
     Normalization()])
 ############### End Custom Transforms ########################

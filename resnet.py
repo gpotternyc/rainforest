@@ -10,7 +10,8 @@ import torch.utils.data as data
 from torchvision import transforms
 
 from resnet_data.inceptionresnetv2.pytorch_load import inceptionresnetv2, InceptionResnetV2
-from cloud_bm_v2 import ToTensor, Normalization, AmazonDataSet, read_data, train
+from cloud_bm_v2 import ToTensor, Normalization, AmazonDataSet, read_data, train, Scale, RandomHorizontalFlip, RandomVerticalFlip, RandomSizedCrop
+from PIL import Image
 
 
 def get_resnet(device_ids):
@@ -48,11 +49,6 @@ def get_resnet(device_ids):
         setattr(in_res, x, nn.DataParallel(m[-1], device_ids=device_ids))
     return in_res
 
-class Scale(object):
-    def __call__(self, sample):
-        x = imresize(sample['image'], (299, 299))
-        return {'image': x, 'labels': sample['labels']}
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--load_weights", default=None, type=str)
@@ -63,6 +59,9 @@ if __name__ == "__main__":
 
     data_transform = transforms.Compose([
         Scale(),
+        RandomHorizontalFlip(),
+        RandomVerticalFlip(),
+        RandomSizedCrop(),
         ToTensor(),
         Normalization(),
     ])
