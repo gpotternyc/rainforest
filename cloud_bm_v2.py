@@ -99,7 +99,6 @@ data_transform = transforms.Compose([
 ############### End Custom Transforms ########################
 ############### Validation ###################################
 def validate(model, val_loader):
-    print("I'm in validation mode")
     if torch.cuda:
         model.cuda()
 
@@ -120,8 +119,11 @@ def validate(model, val_loader):
         outputs = model(inputs)
         loss = criterion(outputs, targets)
         running_loss += loss.data[0]
-    print("Done with validation")
+
+    print("***Validation***")
     print(running_loss/(i*32.0))
+    print("*End Validation*")
+
     return running_loss/(i*32.0)
 
 ############# End Validation ##################################
@@ -129,7 +131,31 @@ def validate(model, val_loader):
 def save_checkpoint(state, is_best, filename="validation.pth.tar"):
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'model_validation.pth.tar')
+        shutil.copyfile(filename, 'model_cloud_bm.pth.tar')
+
+def precise(precision, best_prec, is_train)
+    is_best = precision > best_prec
+    best_prec = max(best_prec, precision)
+
+    if i%10 == 0:
+        print(epoch+1, precision)
+    if(is_best):
+        if(is_train):
+            save_checkpoint({
+                'epoch': epoch+1,
+                'state_dict': model.state_dict(),
+                'best_prec': best_prec,
+                'optimizer': opt.step(),
+            }, is_best, filename="train.pth.tar")
+        else: #validation
+            save_checkpoint({
+                'epoch': epoch+1,
+                'state_dict': model.state_dict(),
+                'best_prec': best_prec,
+                'optimizer': opt.step(),
+            }, is_best, filename="validation.pth.tar")
+
+    return best_prec
 
 def train(model, dataset_loader, val_loader):
 	#c = CrayonClient(hostname="localhost")
@@ -140,6 +166,7 @@ def train(model, dataset_loader, val_loader):
 	criterion = nn.MSELoss()
 	model.train()
 	best_prec = 0
+    best_val = 0
 	for epoch in range(50):
 		running_loss = 0.0
 		i=0
@@ -160,21 +187,15 @@ def train(model, dataset_loader, val_loader):
 			#d.add_scalar_value("loss", loss.data[0])
 			opt.step()
 			running_loss += loss.data[0]
-			
-			#precision = running_loss/(i*32.0)
-			precision = validate(model, val_loader)
-			is_best = precision > best_prec
-			best_prec = max(best_prec, precision)
+            
+			#Training Set Loss (Computationally Inexpensive)
+			precision = running_loss/(i*32.0)
+            print(precision)
+            best_prec = precise(precision, best_prec, True)
+	   #Validation Every Epoch Because of Time Constraints
+       precision = validate(model, val_loader)
+       best_val = precise(precision, best_val, False)
 
-			if i%10 == 0:
-				print(epoch+1, precision)
-			if(is_best):
-			    save_checkpoint({
-                    'epoch': epoch+1,
-                    'state_dict': model.state_dict(),
-                    'best_prec': best_prec,
-                    'optimizer': opt.step(),
-                }, is_best)
 
 
 if __name__ == "__main__":
