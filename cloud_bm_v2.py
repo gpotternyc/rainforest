@@ -174,46 +174,52 @@ def save_checkpoint(state, is_best, filename="validation.pth.tar"):
     if is_best:
         shutil.copyfile(filename, 'model_resnet.pth.tar')
 
-def precise(precision, best_prec, epoch, model, opt,i, is_train):
+def precise(precision, best_prec, epoch, tot_batches, model, opt,i, is_train):
     is_best = precision > best_prec
     best_prec = max(best_prec, precision)
     if(is_train):
         if i%10 == 0:
             print(epoch+1, precision)
-    if(is_best):
-        if(is_train):
-            save_checkpoint({
-                'epoch': epoch+1,
-                'state_dict': model.state_dict(),
-                'best_prec': best_prec,
-                'optimizer': opt.step(),
-            }, is_best, filename="train.pth.tar")
-        else: #validation
-            print("Writing Validation")
-            save_checkpoint({
-                'epoch': epoch+1,
-                'state_dict': model.state_dict(),
-                'best_prec': best_prec,
-                'optimizer': opt.step(),
-            }, is_best, filename="validation.pth.tar")
+    if not is_train:
+	    print("Writing Validation")
+	    save_checkpoint(model.state_dict(), is_best, filename="validation-{}.pth.tar".format(tot_batches))
 
     return best_prec
 
+LR = .001
+steps = (70000, 150000, 315000)
+def lr(opt, gamma, st):
+	new = LR * (gamma ** st)
+	for p in opt.param_groups:
+		p['lr'] = new
+	 
 def train(model, dataset_loader, val_loader, batch_size):
+	x = 1000
 	if use_crayon:
 		c = CrayonClient(hostname="localhost")
-		d = c.create_experiment("123")
+		for _ in range(1000):
+			try:
+				d = c.create_experiment(str(x))
+			except:
+				x += 1
+		print("Tensorboard: {}".format(x))
 	if torch.cuda:
 		model.cuda()
-	opt = optim.SGD(model.parameters(), lr=0.001, momentum=0.5)
+	opt = optim.SGD(model.parameters(), lr=LR, momentum=0.5)
 	criterion = nn.MSELoss()
 	model.train()
 	best_prec = 0
 	best_val = 0
+	tot_batches = 0
+	st = 0
 	for epoch in range(50):
 		running_loss = 0.0
 		i=0
 		for batch in dataset_loader:
+			if tot_batches in steps:
+				st += 1
+			lr(opt, .1, st)
+			tot_batches += 1
 			i+=1
 			inputs, targets = batch['image'], batch['labels']
 			targets = torch.squeeze(targets)
@@ -234,14 +240,16 @@ def train(model, dataset_loader, val_loader, batch_size):
             
 			#Training Set Loss (Computationally Inexpensive)
 			precision = running_loss/(i*1.0)
-			best_prec = precise(precision, best_prec, epoch, model, opt, i, True)
-			if(i==(17740//batch_size)):
+			best_prec = precise(precision, best_prec, epoch, tot_batches, model, opt, i, True)
+			#if i % 2 == 1:
+			if tot_batches % 10000 == 10000-1:
 			    print("Mid-epoch Validation check")
 			    precision=validate(model, val_loader, batch_size)
-			    best_val = precise(precision, best_val, epoch, model, opt, i, False)
+			    d.add_scalar_value("val loss", precision)
+			    best_val = precise(precision, best_val, epoch, tot_batches, model, opt, i, False)
 		
-		precision = validate(model, val_loader, batch_size)
-		best_val = precise(precision, best_val, epoch, model, opt, i, False)
+		#precision = validate(model, val_loader, batch_size)
+		#best_val = precise(precision, best_val, epoch, tot_batches, model, opt, i, False)
 
 
 

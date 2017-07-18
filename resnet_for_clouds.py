@@ -53,8 +53,9 @@ if __name__ == "__main__":
     parser.add_argument("--load_weights", default=None, type=str)
     parser.add_argument("--img_dir", default="train/train-tif-v2/", type=str)
     args = parser.parse_args()
+    batch_size = 32
     
-    in_res = get_resnet([0,1,2,3])
+    in_res = get_resnet([0, 1])
 
     data_transform = transforms.Compose([
         Scale(),
@@ -79,10 +80,10 @@ if __name__ == "__main__":
     cloud_data = AmazonDataSet(img_labels, cloud_gt, args.img_dir,4, transform=data_transform)
     validation_cloud_data = AmazonDataSet(val_img, val_cloud, args.img_dir,4, transform=val_transform)
 
-    dataset_loader = data.DataLoader(cloud_data, batch_size=96, shuffle=True, num_workers=16)
-    validation_loader = data.DataLoader(validation_cloud_data, batch_size=96, shuffle=True, num_workers=16)
+    dataset_loader = data.DataLoader(cloud_data, batch_size=batch_size, shuffle=True, num_workers=16)
+    validation_loader = data.DataLoader(validation_cloud_data, batch_size=batch_size, shuffle=True, num_workers=16)
 
-    train(in_res, dataset_loader, validation_loader, 96)
+    train(in_res, dataset_loader, validation_loader, batch_size)
 
 
 
