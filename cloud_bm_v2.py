@@ -19,6 +19,7 @@ import shutil
 import random
 import time
 from PIL import Image
+from scipy.misc import imresize
 #from pycrayon import CrayonClient
 
 
@@ -102,7 +103,8 @@ class RandomHorizontalFlip(object):
     def __call__(self, sample):
         x = sample['image']
         y = sample['labels']
-        return {'image': transforms.RandomHorizontalFlip(x), 'labels': y}
+        the_transformation = transforms.RandomHorizontalFlip()
+        return {'image': the_transformation(x), 'labels': y}
 
 class RandomSizedCrop(object):
     def __call__(self, sample):
