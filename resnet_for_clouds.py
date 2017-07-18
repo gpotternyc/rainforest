@@ -54,9 +54,9 @@ if __name__ == "__main__":
     parser.add_argument("--load_weights", default=None, type=str)
     parser.add_argument("--img_dir", default="train/train-tif-v2/", type=str)
     args = parser.parse_args()
-    batch_size = 32
+    batch_size = 17
     
-    in_res = get_resnet([0, 1])
+    in_res = get_resnet([0])
     print("Batch size: {}".format(batch_size))
 
     data_transform = transforms.Compose([

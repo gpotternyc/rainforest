@@ -20,7 +20,7 @@ import shutil
 import random
 import time
 from PIL import Image
-use_crayon = False
+use_crayon = True
 if use_crayon:
 	from pycrayon import CrayonClient
 
@@ -176,12 +176,13 @@ def save_checkpoint(state, is_best, filename="validation.pth.tar"):
 
 def precise(precision, best_prec, epoch, tot_batches, model, opt,i, is_train):
     is_best = precision > best_prec
-    best_prec = max(best_prec, precision)
+    best_prec = min(best_prec, precision)
     if(is_train):
         if i%10 == 0:
             print(epoch+1, precision)
     else:
-	    print("Writing Validation")
+	    print("Writing Validation, tot_batches: {}".format(tot_batches))
+	    print("Precision: {}, best precision: {}".format(precision, best_prec))
 	    save_checkpoint(model.state_dict(), is_best, filename="validation-{}.pth.tar".format(tot_batches))
 
     return best_prec
