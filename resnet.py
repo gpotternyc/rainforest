@@ -11,7 +11,6 @@ from torchvision import transforms
 
 from resnet_data.inceptionresnetv2.pytorch_load import inceptionresnetv2, InceptionResnetV2
 from cloud_bm_v2 import ToTensor, Normalization, AmazonDataSet, read_data, train, Scale, RandomHorizontalFlip, RandomVerticalFlip, RandomSizedCrop
-from PIL import Image
 
 
 def get_resnet(device_ids):
@@ -65,6 +64,10 @@ if __name__ == "__main__":
         ToTensor(),
         Normalization(),
     ])
+    val_transform = transforms.Compose([
+        Scale(),
+        ToTensor(),
+        Normalization()])
 
     if args.load_weights:
         print("Loaded weights from {}".format(args.load_weights))
@@ -74,7 +77,7 @@ if __name__ == "__main__":
     val_img, val_features, val_cloud = read_data("validation.csv")
 
     feature_data = AmazonDataSet(img_labels, features_gt, args.img_dir,4, transform=data_transform)
-    validation_feature_data = AmazonDataSet(val_img, val_features, args.img_dir,4, transform=data_transform)
+    validation_feature_data = AmazonDataSet(val_img, val_features, args.img_dir,4, transform=val_transform)
 
     dataset_loader = data.DataLoader(feature_data, batch_size=32, shuffle=True, num_workers=16)
     validation_loader = data.DataLoader(validation_feature_data, batch_size=32, shuffle=True, num_workers=16)

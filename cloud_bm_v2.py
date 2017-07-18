@@ -18,6 +18,7 @@ import sys
 import shutil
 import random
 import time
+from PIL import Image
 #from pycrayon import CrayonClient
 
 
@@ -127,6 +128,10 @@ data_transform = transforms.Compose([
     RandomSizedCrop(),
     ToTensor(), 
     Normalization()])
+val_transform = transforms.Compose([
+    Scale(),
+    ToTensor(),
+    Normalization()])
 ############### End Custom Transforms ########################
 ############### Validation ###################################
 def validate(model, val_loader):
@@ -155,6 +160,7 @@ def validate(model, val_loader):
     print(running_loss/(i*32.0))
     print("*End Validation*")
 
+    model.train()
     return running_loss/(i*32.0)
 
 ############# End Validation ##################################
@@ -234,7 +240,7 @@ if __name__ == "__main__":
 
     validation_file = os.getcwd()+ "/validation.csv"                                              #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
     val_img_labels, val_features_gt, val_cloud_gt  = read_data(validation_file)                   #image filenames, feature and cloud ground truth arrays
-    validation_cloud = AmazonDataSet(val_img_labels, val_cloud_gt, "/../train/train-tif-v2/", 4, transform=data_transform)
+    validation_cloud = AmazonDataSet(val_img_labels, val_cloud_gt, "/../train/train-tif-v2/", 4, transform=val_transform)
 
     dataset_loader = DataLoader(train_cloud, batch_size=32, shuffle=True, num_workers=16)
     print("Data Loaded")
