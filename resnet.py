@@ -79,10 +79,10 @@ if __name__ == "__main__":
     feature_data = AmazonDataSet(img_labels, features_gt, args.img_dir,4, transform=data_transform)
     validation_feature_data = AmazonDataSet(val_img, val_features, args.img_dir,4, transform=val_transform)
 
-    dataset_loader = data.DataLoader(feature_data, batch_size=96, shuffle=True, num_workers=16)
-    validation_loader = data.DataLoader(validation_feature_data, batch_size=96, shuffle=True, num_workers=16)
+    dataset_loader = data.DataLoader(feature_data, batch_size=54, shuffle=True, num_workers=16)
+    validation_loader = data.DataLoader(validation_feature_data, batch_size=54, shuffle=True, num_workers=16)
 
-    train(in_res, dataset_loader, validation_loader, 96)
+    train(in_res, dataset_loader, validation_loader, 54)
 
 
 
