@@ -99,6 +99,7 @@ data_transform = transforms.Compose([
 ############### End Custom Transforms ########################
 ############### Validation ###################################
 def validate(model, val_loader):
+    print("I'm in validation mode")
     if torch.cuda:
         model.cuda()
 
@@ -119,7 +120,7 @@ def validate(model, val_loader):
         outputs = model(inputs)
         loss = criterion(outputs, targets)
         running_loss += loss.data[0]
-
+    print("Done with validation")
     print(running_loss/(i*32.0))
     return running_loss/(i*32.0)
 

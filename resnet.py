@@ -71,12 +71,17 @@ if __name__ == "__main__":
         print("Loaded weights from {}".format(args.load_weights))
         in_res.load_weights(args.load_weights)
 
-    img_labels, features_gt, _  = read_data("../train/train_v2.csv")
-    transformed_cloud_data = AmazonDataSet(img_labels, features_gt, args.img_dir,4, transform=data_transform)
+    img_labels, features_gt, _  = read_data("train.csv")
+    val_img, val_features, val_cloud = read_data("validation.csv")
+
+    feature_data = AmazonDataSet(img_labels, features_gt, args.img_dir,4, transform=data_transform)
+    validation_feature_data = AmazonDataSet(val_img, val_features, args.img_dir,4, transform=data_transform)
+
+    dataset_loader = data.DataLoader(feature_data, batch_size=32, shuffle=True, num_workers=16)
+    validation_loader = data.DataLoader(validation_feature_data, batch_size=32, shuffle=True, num_workers=16)
+
+    train(in_res, dataset_loader, validation_loader)
 
 
 
 #end
-    dataset_loader = data.DataLoader(transformed_cloud_data, batch_size=32, shuffle=True, num_workers=16)
-
-    train(in_res, dataset_loader)
