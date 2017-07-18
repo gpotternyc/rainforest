@@ -16,9 +16,9 @@ from torch.autograd import Variable
 from squeezenet import squeezenet1_0
 import sys
 import shutil
-
+import random
 import time
-from pycrayon import CrayonClient
+#from pycrayon import CrayonClient
 
 
 def read_data(filename, cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy'],\
@@ -38,7 +38,7 @@ def read_data(filename, cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy'
 
 			string_feat= [second_split[1]] + row[1:]
 
-			cloud_one_hot = np.zeros(1)			#not one hot vectors
+			cloud_one_hot = np.zeros(4)			#not one hot vectors
 			feature_one_hot = np.zeros(13)
 			#look for features by iterating over labels and doing string comparison
 			for element in string_feat:
@@ -47,7 +47,7 @@ def read_data(filename, cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy'
 						feature_one_hot[index] = 1
 				for index,k in enumerate(cloud_labels):
 					if element==k:
-						cloud_one_hot[0] = index
+						cloud_one_hot[index] = 1
 
 			feat.append(feature_one_hot)
 			cloud.append(cloud_one_hot)
@@ -97,13 +97,42 @@ data_transform = transforms.Compose([
     ToTensor(), 
     Normalization()])
 ############### End Custom Transforms ########################
-def save_checkpoint(state, is_best, filename="checkpoint.pth.tar"):
+############### Validation ###################################
+def validate(model, val_loader):
+    if torch.cuda:
+        model.cuda()
+
+    criterion = nn.MSELoss()
+    model.eval()
+    i=0
+    running_loss = 0.0
+    for batch in val_loader:
+        i+=1
+        inputs, targets = batch['image'], batch['labels']
+        targets = torch.squeeze(targets)
+
+        if torch.cuda:
+            inputs = inputs.cuda()
+            targets = targets.cuda()
+
+        inputs = Variable(inputs); targets = Variable(targets)
+        outputs = model(inputs)
+        loss = criterion(outputs, targets)
+        running_loss += loss.data[0]
+
+    print(running_loss/(i*32.0))
+    return running_loss/(i*32.0)
+
+############# End Validation ##################################
+
+def save_checkpoint(state, is_best, filename="validation.pth.tar"):
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'model_best.pth.tar')
-def train(model, dataset_loader):
-	c = CrayonClient(hostname="localhost")
-	d = c.create_experiment("123")
+        shutil.copyfile(filename, 'model_validation.pth.tar')
+
+def train(model, dataset_loader, val_loader):
+	#c = CrayonClient(hostname="localhost")
+	#d = c.create_experiment("123")
 	if torch.cuda:
 		model.cuda()
 	opt = optim.SGD(model.parameters(), lr=0.001, momentum=0.5)
@@ -127,11 +156,12 @@ def train(model, dataset_loader):
 
 			loss = criterion(out, targets)
 			loss.backward()
-			d.add_scalar_value("loss", loss.data[0])
+			#d.add_scalar_value("loss", loss.data[0])
 			opt.step()
 			running_loss += loss.data[0]
 			
-			precision = running_loss/(i*32.0)
+			#precision = running_loss/(i*32.0)
+			precision = validate(model, val_loader)
 			is_best = precision > best_prec
 			best_prec = max(best_prec, precision)
 
@@ -147,17 +177,21 @@ def train(model, dataset_loader):
 
 
 if __name__ == "__main__":
-	data_file = os.getcwd()+ "/../train/train_v2.csv" #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
+    training_file = os.getcwd() + "/train.csv"
+    img_labels, features_gt, cloud_gt = read_data(training_file)
+    train_cloud = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/", 4, transform=data_transform)
 
-	img_labels, features_gt, cloud_gt  = read_data(data_file) #image filenames, feature and cloud ground truth arrays
+    validation_file = os.getcwd()+ "/validation.csv"                                              #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
+    val_img_labels, val_features_gt, val_cloud_gt  = read_data(validation_file)                   #image filenames, feature and cloud ground truth arrays
+    validation_cloud = AmazonDataSet(val_img_labels, val_cloud_gt, "/../train/train-tif-v2/", 4, transform=data_transform)
 
-	cloud_data  = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/", 4)
-	transformed_cloud_data = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/", 4, transform=data_transform)
-	dataset_loader = DataLoader(transformed_cloud_data, batch_size=32, shuffle=True, num_workers=16)
-	print("Data Loaded")
+    dataset_loader = DataLoader(train_cloud, batch_size=32, shuffle=True, num_workers=16)
+    print("Data Loaded")
+    validation_loader = DataLoader(validation_cloud, batch_size=32, shuffle=True, num_workers=16)
+    print("Validation Loaded")
 
-	model = squeezenet1_0(pretrained=False, num_classes=4)
-	train(model, dataset_loader)
+    model = squeezenet1_0(pretrained=False, num_classes=4)
+    train(model, dataset_loader, validation_loader)
 
 
 #end

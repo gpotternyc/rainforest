@@ -73,6 +73,10 @@ if __name__ == "__main__":
 
     img_labels, features_gt, _  = read_data("../train/train_v2.csv")
     transformed_cloud_data = AmazonDataSet(img_labels, features_gt, args.img_dir,4, transform=data_transform)
+
+
+
+#end
     dataset_loader = data.DataLoader(transformed_cloud_data, batch_size=32, shuffle=True, num_workers=16)
 
     train(in_res, dataset_loader)
