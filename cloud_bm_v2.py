@@ -20,7 +20,9 @@ import shutil
 import random
 import time
 from PIL import Image
-#from pycrayon import CrayonClient
+use_crayon = False
+if use_crayon:
+	from pycrayon import CrayonClient
 
 
 def read_data(filename, cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy'],\
@@ -97,7 +99,7 @@ class Normalization(object):
 class Scale(object):
     def __call__(self, sample):
         x = Image.fromarray(imresize(sample['image'], (299, 299)))
-        return {'image': x, 'labels': sample['labels']}
+        return {'image': np.array(x), 'labels': sample['labels']}
 
 class RandomHorizontalFlip(object):
     def __call__(self, sample):
@@ -198,8 +200,9 @@ def precise(precision, best_prec, epoch, model, opt,i, is_train):
     return best_prec
 
 def train(model, dataset_loader, val_loader, batch_size):
-	#c = CrayonClient(hostname="localhost")
-	#d = c.create_experiment("123")
+	if use_crayon:
+		c = CrayonClient(hostname="localhost")
+		d = c.create_experiment("123")
 	if torch.cuda:
 		model.cuda()
 	opt = optim.SGD(model.parameters(), lr=0.001, momentum=0.5)
@@ -224,7 +227,8 @@ def train(model, dataset_loader, val_loader, batch_size):
 
 			loss = criterion(out, targets)
 			loss.backward()
-			#d.add_scalar_value("loss", loss.data[0])
+			if use_crayon:
+				d.add_scalar_value("loss", loss.data[0])
 			opt.step()
 			running_loss += loss.data[0]
             
