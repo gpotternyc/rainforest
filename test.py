@@ -146,6 +146,6 @@ def test_data(dataset_loader, filename):
 test_file = os.getcwd()+ "/submission.csv"                                              #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
 test_img_labels, test_features_gt, test_cloud_gt  = read_data(test_file)                   #image filenames, feature and cloud ground truth arrays
 test_cloud = AmazonDataSet(test_img_labels, test_cloud_gt, "/../test/test-tif-v2/", 4, transform=test_transform)
-test_loader = DataLoader(validation_cloud, batch_size=1, shuffle=False, num_workers=1)
+test_loader = DataLoader(test_cloud, batch_size=1, shuffle=False, num_workers=1)
 
 test_data(test_loader, "output.csv")
