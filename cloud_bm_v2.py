@@ -138,11 +138,17 @@ val_transform = transforms.Compose([
     Normalization()])
 ############### End Custom Transforms ########################
 ############### Validation ###################################
-def validate(model, val_loader, batch_size):
+def validate(model, val_loader, batch_size, crit):
     if torch.cuda:
         model.cuda()
 
-    criterion = nn.MSELoss()
+    if crit == "MSE":
+        criterion = nn.MSELoss()
+    elif crit == "CrossEntropy":
+        criterion = nn.CrossEntropyLoss()
+    else:
+        print("unrecognized loss function {}".format(crit))
+
     model.eval()
     i=0
     running_loss = 0.0
@@ -154,6 +160,8 @@ def validate(model, val_loader, batch_size):
         if torch.cuda:
             inputs = inputs.cuda()
             targets = targets.cuda()
+        if crit == "CrossEntropy":
+            targets = targets.long()
 
         inputs = Variable(inputs); targets = Variable(targets)
         outputs = model(inputs)
@@ -258,7 +266,7 @@ def train(model, dataset_loader, val_loader, batch_size, crit="MSE"):
 			#if i % 2 == 1:
 			if tot_batches % validate_every == validate_every-1:
 			    print("Validation check")
-			    precision=validate(model, val_loader, batch_size)
+			    precision=validate(model, val_loader, batch_size, crit)
 			    if use_crayon:
 				    d.add_scalar_value("val loss", precision)
 			    best_val = precise(precision, best_val, epoch, tot_batches, model, opt, i, False)
