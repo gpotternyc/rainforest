@@ -102,6 +102,7 @@ def squeezenet():
     SqueezeNet.forward = forward
     
     model = squeezenet1_1(pretrained=True, num_classes=1000)
+    model.load_state_dict(torch.load("model_squeezecloud.pth.tar"))
     x = model.features[0].weight.data.numpy()
     s = x.shape
     l = []
@@ -123,7 +124,6 @@ def test_data(dataset_loader, filename):
 
 	########### Configure Model ############################
 	squeezemodel = squeezenet()
-	squeezemodel.load_state_dict(torch.load("model_squeezecloud.pth.tar"))
 	resnet_model = get_resnet([0,1,2,3], 13)
 	in_res.load_state_dict(torch.load("model_resnetppp.pth.tar"))
 	if torch.cuda:
