@@ -12,6 +12,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
 from squeezenet import squeezenet1_1, SqueezeNet
+from resnet import get_resnet
 from scipy.misc import imresize
 import sys
 import shutil
@@ -56,7 +57,7 @@ class AmazonDataSet(Dataset):
         return len(self.images)
 
     def __getitem__(self,idx):
-        img_name = os.getcwd()+"/../train/train-tif-v2/" + self.images[idx] + ".tif"
+        img_name = os.getcwd()+"/../test/test-tif-v2/" + self.images[idx] + ".tif"
         tif = TIFF.open(img_name, mode='r')
         image = tif.read_image()
         sample = {'image':image, 'labels': self.labels[idx]}
@@ -123,15 +124,15 @@ def test_data(dataset_loader, filename):
 	feature_labels=['primary', 'agriculture', 'water', 'habitation', 'road', 'cultivation', 'slash_burn', 'conventional_mine', 'bare_ground', 'artisinal_mine', 'blooming', 'selective_logging', 'blow_down']
 
 	########### Configure Model ############################
-	squeezemodel = squeezenet()
+	#squeezemodel = squeezenet()
 	resnet_model = get_resnet([0,1,2,3], 13)
-	in_res.load_state_dict(torch.load("model_resnetppp.pth.tar"))
+	resnet_model.load_state_dict(torch.load("model_resnetppp.pth.tar"))
 	if torch.cuda:
-	    squeezemodel.cuda()
+	    #squeezemodel.cuda()
 	    resnet_model.cuda()
 	
-	squeezemodel.eval()
-	renset_model.eval()
+	#squeezemodel.eval()
+	resnet_model.eval()
 
 	for batch in dataset_loader:
 		inputs = batch['image']
@@ -139,7 +140,7 @@ def test_data(dataset_loader, filename):
 			inputs = inputs.cuda()
 		print(inputs)
 		#RUN THROUGH SQUEEZENET MODEL FIRST
-		outputs = squeezemodel(inputs)
+		outputs = resnet_model(inputs)
 		print(outputs)
 
 
