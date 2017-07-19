@@ -21,14 +21,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
     batch_size = 17
     
-    in_res = get_resnet([0], 4, sigmoid=False)
+    in_res = get_resnet([0], 4, sigmoid=False, dropout=True)
     print("Batch size: {}".format(batch_size))
 
     data_transform = transforms.Compose([
         Scale(),
         RandomHorizontalFlip(),
         RandomVerticalFlip(),
-        RandomSizedCrop(),
+        #RandomSizedCrop(),
         ToTensor(),
         Normalization(),
     ])

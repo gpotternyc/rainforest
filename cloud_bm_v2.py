@@ -13,7 +13,7 @@ import torch.nn.functional as functional
 import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
-from squeezenet import squeezenet1_0
+from squeezenet import squeezenet1_1, SqueezeNet
 from scipy.misc import imresize
 import sys
 import shutil
@@ -21,6 +21,7 @@ import random
 import time
 from PIL import Image
 use_crayon = True
+#use_crayon = False
 if use_crayon:
 	from pycrayon import CrayonClient
 
@@ -43,6 +44,7 @@ def read_data(filename, cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy'
 			string_feat= [second_split[1]] + row[1:]
 
 			cloud_one_hot = np.zeros(1)			#not one hot vectors
+			#cloud_one_hot = np.zeros(4)			#not one hot vectors
 			feature_one_hot = np.zeros(13)
 			#look for features by iterating over labels and doing string comparison
 			for element in string_feat:
@@ -52,6 +54,7 @@ def read_data(filename, cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy'
 				for index,k in enumerate(cloud_labels):
 					if element==k:
 						cloud_one_hot[0] = index
+						#cloud_one_hot[index] = 1
 
 			feat.append(feature_one_hot)
 			cloud.append(cloud_one_hot)
@@ -167,6 +170,7 @@ def validate(model, val_loader, batch_size, crit):
         outputs = model(inputs)
         loss = criterion(outputs, targets)
         running_loss += loss.data[0]
+        del inputs, targets, outputs, loss
 
     print("***Validation***")
     print(running_loss/(i*1.0))
@@ -195,7 +199,7 @@ def precise(precision, best_prec, epoch, tot_batches, model, opt,i, is_train):
 
     return best_prec
 
-LR = .0003
+LR = .01
 steps = (2, 5, 10, 15)
 def lr(opt, gamma, tot_batches, batches_per_epoch):
 	st = 0
@@ -207,10 +211,10 @@ def lr(opt, gamma, tot_batches, batches_per_epoch):
 		p['lr'] = new
 	 
 def train(model, dataset_loader, val_loader, batch_size, crit="MSE", save_every=.3):
-	x = 2000
+	x = 10000
 	if use_crayon:
 		c = CrayonClient(hostname="localhost")
-		for _ in range(1000):
+		for _ in range(5000):
 			try:
 				d = c.create_experiment(str(x))
 			except:
@@ -218,7 +222,7 @@ def train(model, dataset_loader, val_loader, batch_size, crit="MSE", save_every=
 		print("Tensorboard: {}".format(x))
 	if torch.cuda:
 		model.cuda()
-	opt = optim.Adam(model.parameters(), lr=LR, weight_decay=.001)
+	opt = optim.Adam(model.parameters(), lr=LR, weight_decay=.005)
 	if crit == "MSE":
 		criterion = nn.MSELoss()
 	elif crit == "CrossEntropy":
@@ -238,7 +242,7 @@ def train(model, dataset_loader, val_loader, batch_size, crit="MSE", save_every=
 		running_loss = 0.0
 		i=0
 		for batch in dataset_loader:
-			#lr(opt, .3, tot_batches, len(dataset_loader))
+			lr(opt, .4, tot_batches, len(dataset_loader))
 			tot_batches += 1
 			i+=1
 			inputs, targets = batch['image'], batch['labels']
@@ -254,12 +258,14 @@ def train(model, dataset_loader, val_loader, batch_size, crit="MSE", save_every=
 			out = model(inputs)
 
 			loss = criterion(out, targets)
-			loss.backward()
 			if use_crayon:
 				d.add_scalar_value("loss", loss.data[0])
-			opt.step()
 			running_loss += loss.data[0]
+			loss.backward()
+			opt.step()
             
+			del inputs, targets, out, loss
+
 			#Training Set Loss (Computationally Inexpensive)
 			precision = running_loss/(i*1.0)
 			best_prec = precise(precision, best_prec, epoch, tot_batches, model, opt, i, True)
@@ -281,17 +287,39 @@ if __name__ == "__main__":
     img_labels, features_gt, cloud_gt = read_data(training_file)
     train_cloud = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/", 4, transform=data_transform)
 
+    o = SqueezeNet.forward
+    def forward(x):
+        x = o(x)
+        x = self.dropout(x)
+        x = self.last(x)
+        return x
+    o.last = nn.Linear(1000, 4)
+    o.dropout = nn.Dropout(.4)
+    batch_size = 64
+
     validation_file = os.getcwd()+ "/validation.csv"                                              #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
     val_img_labels, val_features_gt, val_cloud_gt  = read_data(validation_file)                   #image filenames, feature and cloud ground truth arrays
     validation_cloud = AmazonDataSet(val_img_labels, val_cloud_gt, "/../train/train-tif-v2/", 4, transform=val_transform)
 
-    dataset_loader = DataLoader(train_cloud, batch_size=32, shuffle=True, num_workers=16)
+    dataset_loader = DataLoader(train_cloud, batch_size=batch_size, shuffle=True, num_workers=16)
     print("Data Loaded")
-    validation_loader = DataLoader(validation_cloud, batch_size=32, shuffle=True, num_workers=16)
+    validation_loader = DataLoader(validation_cloud, batch_size=batch_size, shuffle=True, num_workers=16)
     print("Validation Loaded")
 
-    model = squeezenet1_0(pretrained=False, num_classes=4)
-    train(model, dataset_loader, validation_loader, 32)
+    model = squeezenet1_1(pretrained=True, num_classes=1000)
+    x = model.features[0].weight.data.numpy()
+    s = x.shape
+    l = []
+    for i in s:
+        l.append(i)
+    l[1] += 1
+    y = np.ones(tuple(l))
+    for i in range(3):
+        y[:, i, :] = x[:, i, :]
+    y[:, 3, :] = (x[:, 0, :]+x[:, 1, :]+x[:, 2, :])/3.0
+    model.features[0].weight.data = torch.from_numpy(y).float()
+    model.features[0].in_channels = 4
+    train(model, dataset_loader, validation_loader, batch_size, crit="CrossEntropy")
 
 
 #end
