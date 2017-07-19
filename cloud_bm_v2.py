@@ -288,8 +288,8 @@ if __name__ == "__main__":
     train_cloud = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/", 4, transform=data_transform)
 
     o = SqueezeNet.forward
-    def forward(x):
-        x = o(x)
+    def forward(self, x):
+        x = o(self, x)
         x = self.dropout(x)
         x = self.last(x)
         return x
