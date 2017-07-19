@@ -191,7 +191,7 @@ def precise(precision, best_prec, epoch, tot_batches, model, opt,i, is_train):
     else:
 	    print("Writing Validation, tot_batches: {}".format(tot_batches))
 	    print("Precision: {}, best precision: {}".format(precision, best_prec))
-	    #save_checkpoint(model.state_dict(), is_best, filename="validation-{}.pth.tar".format(tot_batches))
+	    save_checkpoint(model.state_dict(), is_best, filename="validation-{}.pth.tar".format(tot_batches))
 
     return best_prec
 
