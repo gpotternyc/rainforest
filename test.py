@@ -77,7 +77,7 @@ test_transform = transforms.Compose([
     Normalization()])
 
 def squeezenet():
-	model = squeezenet1_1(pretrained=True, num_classes=1000)
+    model = squeezenet1_1(pretrained=True, num_classes=1000)
     x = model.features[0].weight.data.numpy()
     s = x.shape
     l = []
