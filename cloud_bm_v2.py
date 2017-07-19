@@ -191,7 +191,7 @@ def precise(precision, best_prec, epoch, tot_batches, model, opt,i, is_train):
     else:
 	    print("Writing Validation, tot_batches: {}".format(tot_batches))
 	    print("Precision: {}, best precision: {}".format(precision, best_prec))
-	    save_checkpoint(model.state_dict(), is_best, filename="validation-{}.pth.tar".format(tot_batches))
+	    #save_checkpoint(model.state_dict(), is_best, filename="validation-{}.pth.tar".format(tot_batches))
 
     return best_prec
 
@@ -206,7 +206,7 @@ def lr(opt, gamma, tot_batches, batches_per_epoch):
 	for p in opt.param_groups:
 		p['lr'] = new
 	 
-def train(model, dataset_loader, val_loader, batch_size, crit="MSE"):
+def train(model, dataset_loader, val_loader, batch_size, crit="MSE", save_every=.3):
 	x = 2000
 	if use_crayon:
 		c = CrayonClient(hostname="localhost")
@@ -231,7 +231,7 @@ def train(model, dataset_loader, val_loader, batch_size, crit="MSE"):
 	best_val = 2e15
 	tot_batches = 0
 	st = 0
-	validate_every = int(.3 * len(dataset_loader))
+	validate_every = int(save_every * len(dataset_loader))
 	print("Validating every {} batches".format(validate_every))
 
 	for epoch in range(50):

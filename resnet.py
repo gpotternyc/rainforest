@@ -13,7 +13,7 @@ from resnet_data.inceptionresnetv2.pytorch_load import inceptionresnetv2, Incept
 from cloud_bm_v2 import ToTensor, Normalization, AmazonDataSet, read_data, train, Scale, RandomHorizontalFlip, RandomVerticalFlip, RandomSizedCrop
 
 
-def get_resnet(device_ids):
+def get_resnet(device_ids, sigmoid=True):
     f = InceptionResnetV2.forward
     def forward(self, x):
         x = f(self, x)
@@ -21,6 +21,8 @@ def get_resnet(device_ids):
         x = self.dropout1(x)
         x = self.last(x)
         x = self.dropout2(x)
+        if sigmoid:
+            x = self.sigmoid(x)
         return x
     InceptionResnetV2.forward = forward
 
@@ -29,6 +31,7 @@ def get_resnet(device_ids):
     in_res.last = nn.Linear(1001, 13)
     in_res.dropout1 = nn.Dropout(.3)
     in_res.dropout2 = nn.Dropout(.2)
+    in_res.sigmoid = nn.Sigmoid()
 
     x = in_res.conv2d_1a.conv.weight.data.numpy()
     s = x.shape
@@ -59,6 +62,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     in_res = get_resnet([0,1,2,3])
+    batch_size = 54
 
     data_transform = transforms.Compose([
         Scale(),
@@ -83,10 +87,10 @@ if __name__ == "__main__":
     feature_data = AmazonDataSet(img_labels, features_gt, args.img_dir,4, transform=data_transform)
     validation_feature_data = AmazonDataSet(val_img, val_features, args.img_dir,4, transform=val_transform)
 
-    dataset_loader = data.DataLoader(feature_data, batch_size=54, shuffle=True, num_workers=16)
-    validation_loader = data.DataLoader(validation_feature_data, batch_size=54, shuffle=True, num_workers=16)
+    dataset_loader = data.DataLoader(feature_data, batch_size=batch_size, shuffle=True, num_workers=16)
+    validation_loader = data.DataLoader(validation_feature_data, batch_size=batch_size, shuffle=True, num_workers=16)
 
-    train(in_res, dataset_loader, validation_loader, 54)
+    train(in_res, dataset_loader, validation_loader, batch_size)
 
 
 
