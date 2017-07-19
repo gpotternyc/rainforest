@@ -117,13 +117,12 @@ def test_data(dataset_loader, filename):
 	squeezemodel.load_state_dict(torch.load("model_squeezecloud.pth.tar"))
 	resnet_model = get_resnet([0,1,2,3], 13)
 	in_res.load_state_dict(torch.load("model_resnetppp.pth.tar"))
-    
-    if torch.cuda:
-        squeezemodel.cuda()
-        resnet_model.cuda()
-
-    squeezemodel.eval()
-    renset_model.eval()
+	if torch.cuda:
+	    squeezemodel.cuda()
+	    resnet_model.cuda()
+	
+	squeezemodel.eval()
+	renset_model.eval()
 
 	for batch in dataset_loader:
 		inputs = batch['image']
