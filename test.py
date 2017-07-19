@@ -57,7 +57,7 @@ class AmazonDataSet(Dataset):
         return len(self.images)
 
     def __getitem__(self,idx):
-        img_name = os.getcwd()+"/../test/test-tif-v2/" + self.images[idx] + ".tif"
+        img_name = os.getcwd()+ self.root_dir + self.images[idx] + ".tif"
         tif = TIFF.open(img_name, mode='r')
         image = tif.read_image()
         sample = {'image':image, 'labels': self.labels[idx]}
@@ -135,13 +135,18 @@ def test_data(dataset_loader, filename):
 	resnet_model.eval()
 
 	for batch in dataset_loader:
+
 		inputs = batch['image']
 		if torch.cuda:
 			inputs = inputs.cuda()
-		print(inputs)
+		inputs = Variable(inputs)
+		
 		#RUN THROUGH SQUEEZENET MODEL FIRST
 		outputs = resnet_model(inputs)
 		print(outputs)
+        for k in range(len(outputs)):
+            if(outputs[k]>0.75):
+                features[k]=1
 
 
 
@@ -153,7 +158,7 @@ def test_data(dataset_loader, filename):
 
 
 
-test_file = os.getcwd()+ "/submission.csv"                                              #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
+test_file = os.getcwd()+ "/validation.csv"                                              #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
 test_img_labels, test_features_gt, test_cloud_gt  = read_data(test_file)                   #image filenames, feature and cloud ground truth arrays
 test_cloud = AmazonDataSet(test_img_labels, test_cloud_gt, "/../test/test-tif-v2/", 4, transform=test_transform)
 test_loader = DataLoader(test_cloud, batch_size=1, shuffle=False, num_workers=1)
