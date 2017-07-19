@@ -13,14 +13,16 @@ from resnet_data.inceptionresnetv2.pytorch_load import inceptionresnetv2, Incept
 from cloud_bm_v2 import ToTensor, Normalization, AmazonDataSet, read_data, train, Scale, RandomHorizontalFlip, RandomVerticalFlip, RandomSizedCrop
 
 
-def get_resnet(device_ids, sigmoid=True):
+def get_resnet(device_ids, num_outs, sigmoid=True, dropout=True):
     f = InceptionResnetV2.forward
     def forward(self, x):
         x = f(self, x)
         x = self.act(x)
-        x = self.dropout1(x)
+        if dropout:
+            x = self.dropout1(x)
         x = self.last(x)
-        x = self.dropout2(x)
+        if dropout:
+            x = self.dropout2(x)
         if sigmoid:
             x = self.sigmoid(x)
         return x
@@ -28,7 +30,7 @@ def get_resnet(device_ids, sigmoid=True):
 
     in_res = inceptionresnetv2()
     in_res.act = nn.ReLU(inplace=False)
-    in_res.last = nn.Linear(1001, 13)
+    in_res.last = nn.Linear(1001, num_outs)
     in_res.dropout1 = nn.Dropout(.3)
     in_res.dropout2 = nn.Dropout(.2)
     in_res.sigmoid = nn.Sigmoid()
@@ -61,7 +63,7 @@ if __name__ == "__main__":
     parser.add_argument("--img_dir", default="train/train-tif-v2/", type=str)
     args = parser.parse_args()
     
-    in_res = get_resnet([0,1,2,3])
+    in_res = get_resnet([0,1,2,3], 13)
     batch_size = 54
 
     data_transform = transforms.Compose([
