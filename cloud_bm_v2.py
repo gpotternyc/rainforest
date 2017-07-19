@@ -293,8 +293,8 @@ if __name__ == "__main__":
         x = self.dropout(x)
         x = self.last(x)
         return x
-    o.last = nn.Linear(1000, 4)
-    o.dropout = nn.Dropout(.4)
+    SqueezeNet.forward = forward
+    
     batch_size = 64
 
     validation_file = os.getcwd()+ "/validation.csv"                                              #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
@@ -307,6 +307,8 @@ if __name__ == "__main__":
     print("Validation Loaded")
 
     model = squeezenet1_1(pretrained=True, num_classes=1000)
+    model.last = nn.Linear(1000, 4)
+    model.dropout = nn.Dropout(.4)
     x = model.features[0].weight.data.numpy()
     s = x.shape
     l = []
