@@ -92,6 +92,15 @@ test_transform = transforms.Compose([
     Normalization()])
 
 def squeezenet():
+
+    o = SqueezeNet.forward
+    def forward(self, x):
+        x = o(self, x)
+        x = self.dropout(x)
+        x = self.last(x)
+        return x
+    SqueezeNet.forward = forward
+    
     model = squeezenet1_1(pretrained=True, num_classes=1000)
     x = model.features[0].weight.data.numpy()
     s = x.shape
