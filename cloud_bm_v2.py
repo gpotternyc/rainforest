@@ -224,7 +224,7 @@ def precise(precision, best_prec, epoch, tot_batches, model, opt,i, is_train):
 
     return best_prec
 
-LR = .0020
+LR = .0005
 steps = (5, 15, 30, 60, 100, 150)
 def lr(opt, gamma, tot_batches, batches_per_epoch):
         st = 0
@@ -247,7 +247,7 @@ def train(model, dataset_loader, val_loader, batch_size, crit="BCE", save_every=
                 print("Tensorboard: {}".format(x))
         if torch.cuda:
                 model.cuda()
-        opt = optim.Adam(model.parameters(), lr=LR, weight_decay=.005)
+        opt = optim.Adam(model.parameters(), lr=LR, weight_decay=.010)
         if crit == "MSE" and False:
                 criterion = nn.MSELoss()
         elif crit == "CrossEntropy":
