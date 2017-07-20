@@ -33,6 +33,8 @@ def read_data(filename):
 		next(csvfile)
 		datareader = csv.reader(csvfile, delimiter=' ', quotechar='|')
 		for row in datareader:
+            ################ TESTING CODE - ACTUAL RUN USE THIS ####################
+            """
 			second_split = row[0].split(',') #split on the comma between filename and first label
 			img.append(second_split[0]) #image filename
 			#Filler
@@ -40,7 +42,31 @@ def read_data(filename):
 			cloud_one_hot = np.zeros(1)
 			feat.append(feature_one_hot)
 			cloud.append(cloud_one_hot)
+            """
+            #########################################################################
+            ############## VALIDATION CODE - FOR GROUND TRUTH #######################
+            second_split = row[0].split(',') #split on the comma between filename and first label
+			img.append(second_split[0]) #image filename
 
+			string_feat= [second_split[1]] + row[1:]
+
+			cloud_one_hot = np.zeros(1)			#not one hot vectors
+			#cloud_one_hot = np.zeros(4)			#not one hot vectors
+			feature_one_hot = np.zeros(13)
+			#look for features by iterating over labels and doing string comparison
+			for element in string_feat:
+				for index,k in enumerate(feature_labels):
+					if element==k:
+						feature_one_hot[index] = 1
+				for index,k in enumerate(cloud_labels):
+					if element==k:
+						cloud_one_hot[0] = index
+						#cloud_one_hot[index] = 1
+
+			feat.append(feature_one_hot)
+			cloud.append(cloud_one_hot)
+            ################### END VALIDATION CODE #################################
+            
 	return img, feat, cloud
 
 ########### Dataset #################################################
