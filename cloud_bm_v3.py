@@ -193,7 +193,7 @@ from cloud_bm_v2 import train, validate
 if __name__ == "__main__":
     training_file = os.getcwd() + "/train.csv"
     img_labels, features_gt, cloud_gt = read_data(training_file)
-    train_cloud = AmazonDataSet(img_labels, features_gt, "/../train/train-jpg/", 4, transform=data_transform)
+    train_cloud = AmazonDataSet(img_labels, features_gt, "/../train/train-jpg/", 3, transform=data_transform)
 
     o = SqueezeNet.forward
     def forward(self, x):
@@ -209,7 +209,7 @@ if __name__ == "__main__":
 
     validation_file = os.getcwd()+ "/validation.csv"                                              #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
     val_img_labels, val_features_gt, val_cloud_gt  = read_data(validation_file)                   #image filenames, feature and cloud ground truth arrays
-    validation_cloud = AmazonDataSet(val_img_labels, val_features_gt, "/../train/train-jpg/", 4, transform=val_transform)
+    validation_cloud = AmazonDataSet(val_img_labels, val_features_gt, "/../train/train-jpg/", 3, transform=val_transform)
 
     dataset_loader = DataLoader(train_cloud, batch_size=batch_size, shuffle=True, num_workers=16)
     print("Data Loaded")
