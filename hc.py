@@ -205,7 +205,6 @@ def predict_generator(files, img_size, batch_size):
 
             for file in batch_files:
                 int_counter += 1
-                image = cv2.resize(cv2.imread(file), (img_size, img_size))
                 image = image[:, :, [2, 1, 0]] - mean_pix
                 image = cv2.resize(image, (299, 299))
 
