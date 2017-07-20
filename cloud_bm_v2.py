@@ -157,7 +157,7 @@ val_transform = transforms.Compose([
     Normalization()])
 ############### End Custom Transforms ########################
 ############### Validation ###################################
-def validate(model, val_loader, batch_size, crit):
+def validate(model, val_loader, batch_size, crit, input_dict=False):
     if torch.cuda:
         model.cuda()
 
@@ -207,7 +207,7 @@ def validate(model, val_loader, batch_size, crit):
 def save_checkpoint(state, is_best, filename="validation.pth.tar"):
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'model_resnet.pth.tar')
+        shutil.copyfile(filename, 'model_squeeze_feature.pth.tar')
 
 def precise(precision, best_prec, epoch, tot_batches, model, opt,i, is_train):
     is_best = precision > best_prec
@@ -218,7 +218,7 @@ def precise(precision, best_prec, epoch, tot_batches, model, opt,i, is_train):
     else:
             print("Writing Validation, tot_batches: {}".format(tot_batches))
             print("Precision: {}, best precision: {}".format(precision, best_prec))
-            save_checkpoint(model.state_dict(), is_best, filename="validation-{}.pth.tar".format(tot_batches))
+            save_checkpoint(model.state_dict(), is_best, filename="squeeze_feature_validation-{}.pth.tar".format(tot_batches))
 
     return best_prec
 
@@ -302,7 +302,7 @@ def train(model, dataset_loader, val_loader, batch_size, crit="MSE", save_every=
                         #if i % 2 == 1:
                         if tot_batches % validate_every == validate_every-1:
                             print("Validation check")
-                            precision=validate(model, val_loader, batch_size, crit,input_dict=input_dict)
+                            precision=validate(model, val_loader, batch_size, crit, input_dict=False)
                             if use_crayon:
                                     d.add_scalar_value("val loss", precision)
                             best_val = precise(precision, best_val, epoch, tot_batches, model, opt, i, False)
@@ -315,7 +315,7 @@ def train(model, dataset_loader, val_loader, batch_size, crit="MSE", save_every=
 if __name__ == "__main__":
     training_file = os.getcwd() + "/train.csv"
     img_labels, features_gt, cloud_gt = read_data(training_file)
-    train_cloud = AmazonDataSet(img_labels, cloud_gt, "/../train/train-tif-v2/", 4, transform=data_transform)
+    train_cloud = AmazonDataSet(img_labels, features_gt, "/../train/train-tif-v2/", 4, transform=data_transform)
 
     o = SqueezeNet.forward
     def forward(self, x):
@@ -329,7 +329,7 @@ if __name__ == "__main__":
 
     validation_file = os.getcwd()+ "/validation.csv"                                              #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
     val_img_labels, val_features_gt, val_cloud_gt  = read_data(validation_file)                   #image filenames, feature and cloud ground truth arrays
-    validation_cloud = AmazonDataSet(val_img_labels, val_cloud_gt, "/../train/train-tif-v2/", 4, transform=val_transform)
+    validation_cloud = AmazonDataSet(val_img_labels, val_features_gt, "/../train/train-tif-v2/", 4, transform=val_transform)
 
     dataset_loader = DataLoader(train_cloud, batch_size=batch_size, shuffle=True, num_workers=16)
     print("Data Loaded")
@@ -337,7 +337,7 @@ if __name__ == "__main__":
     print("Validation Loaded")
 
     model = squeezenet1_1(pretrained=True, num_classes=1000)
-    model.last = nn.Linear(1000, 4)
+    model.last = nn.Linear(1000, 13)
     model.dropout = nn.Dropout(.4)
     x = model.features[0].weight.data.numpy()
     s = x.shape
@@ -350,8 +350,8 @@ if __name__ == "__main__":
         y[:, i, :] = x[:, i, :]
     y[:, 3, :] = (x[:, 0, :]+x[:, 1, :]+x[:, 2, :])/3.0
     model.features[0].weight.data = torch.from_numpy(y).float()
-    model.features[0].in_channels = 4
-    train(model, dataset_loader, validation_loader, batch_size, crit="CrossEntropy")
+    model.features[0].in_channels = 13
+    train(model, dataset_loader, validation_loader, batch_size, crit="MSE")
 
 
 #end
