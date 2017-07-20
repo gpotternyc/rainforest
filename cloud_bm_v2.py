@@ -332,7 +332,7 @@ if __name__ == "__main__":
 
     validation_file = os.getcwd()+ "/validation.csv"                                              #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
     val_img_labels, val_features_gt, val_cloud_gt  = read_data(validation_file)                   #image filenames, feature and cloud ground truth arrays
-    validation_cloud = AmazonDataSet(val_img_labels, val_cloud_gt, "/../train/train-jpg/", 4, transform=val_transform)
+    validation_cloud = AmazonDataSet(val_img_labels, val_cloud_gt, "/../train/train-jpg/", 3, transform=val_transform)
 
     dataset_loader = DataLoader(train_cloud, batch_size=batch_size, shuffle=True, num_workers=16)
     print("Data Loaded")
