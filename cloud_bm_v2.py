@@ -157,7 +157,7 @@ val_transform = transforms.Compose([
     Normalization()])
 ############### End Custom Transforms ########################
 ############### Validation ###################################
-def validate(model, val_loader, batch_size, crit):
+def validate(model, val_loader, batch_size, crit, input_dict=False):
     if torch.cuda:
         model.cuda()
 

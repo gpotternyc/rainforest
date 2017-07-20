@@ -104,12 +104,15 @@ def squeezenet():
         x = o(self, x)
         x = self.dropout(x)
         x = self.last(x)
+        x = self.sigmoid(x)
         return x
     SqueezeNet.forward = forward
     
     model = squeezenet1_1(pretrained=True, num_classes=1000)
     model.last = nn.Linear(1000,13)
     model.dropout = nn.Dropout(0.4)
+    model.sigmoid = nn.Sigmoid()
+    model.relu = nn.ReLU()
     x = model.features[0].weight.data.numpy()
     s = x.shape
     l = []
@@ -122,7 +125,7 @@ def squeezenet():
     y[:, 3, :] = (x[:, 0, :]+x[:, 1, :]+x[:, 2, :])/3.0
     model.features[0].weight.data = torch.from_numpy(y).float()
     model.features[0].in_channels = 4
-    model.load_state_dict(torch.load("model_squeeze_feature.pth.tar"))
+    model.load_state_dict(torch.load("model_resnet.pth.tar"))
     return model
 ############### End Squeezenet Implementation ########################
 from fc import FC
