@@ -108,7 +108,8 @@ def squeezenet():
     SqueezeNet.forward = forward
     
     model = squeezenet1_1(pretrained=True, num_classes=1000)
-    model.load_state_dict(torch.load("model_squeezecloud.pth.tar"))
+    model.last = nn.Linear(1000,13)
+    model.dropout = nn.Dropout(0.4)
     x = model.features[0].weight.data.numpy()
     s = x.shape
     l = []
@@ -121,6 +122,7 @@ def squeezenet():
     y[:, 3, :] = (x[:, 0, :]+x[:, 1, :]+x[:, 2, :])/3.0
     model.features[0].weight.data = torch.from_numpy(y).float()
     model.features[0].in_channels = 4
+    model.load_state_dict(torch.load("model_squeeze_feature.pth.tar"))
     return model
 ############### End Squeezenet Implementation ########################
 from fc import FC
@@ -130,23 +132,22 @@ def test_data(dataset_loader, filename):
     feature_labels=['primary', 'agriculture', 'water', 'habitation', 'road', 'cultivation', 'slash_burn', 'conventional_mine', 'bare_ground', 'artisinal_mine', 'blooming', 'selective_logging', 'blow_down']
 
     ########### Configure Model ############################
-    #squeezemodel = squeezenet()
-    resnet_model = get_resnet([0,1,2,3], 13)
-    resnet_model.load_state_dict(torch.load("model_resnetppp.pth.tar"))
-    cloud_model = FC()
-    cloud_model.load_state_dict(torch.load("model_resnet.pth.tar"))
+    resnet_model = squeezenet()
+    #resnet_model = get_resnet([0,1,2,3], 13)
+    #resnet_model.load_state_dict(torch.load("model_resnetppp.pth.tar"))
+    #cloud_model = FC()
+    #cloud_model.load_state_dict(torch.load("model_resnet.pth.tar"))
     if torch.cuda:
         #squeezemodel.cuda()
         resnet_model.cuda()
-        cloud_model.cuda()    
+        #cloud_model.cuda()    
 
     #squeezemodel.eval()
     resnet_model.eval()
-    cloud_model.eval()
+    #cloud_model.eval()
     
     avg_f2 = 0
     num = 0
-    f = open("test_results.txt", "w")
     for batch in dataset_loader:
         if num%100==0:
             print("!!!!" + str(num))
@@ -157,19 +158,15 @@ def test_data(dataset_loader, filename):
         features = [0]*13
     
         inputs = batch['image']
-        sc = batch['image_scaled']
         if torch.cuda:
             inputs = inputs.cuda()
         inputs = Variable(inputs)
         outputs = resnet_model(inputs)
         outputs = outputs.cpu().data.numpy()
-        outputs2 = cloud_mode(Variable(sc)).cpu().data.numpy()
-        for i in range(len(batch)):
-            f.write(str(inputs[i])+"|"+str(outputs2[i])+"|"+str(outputs[i])+"\n")
         for k in range(13):
             if(outputs[0][k]>0.5):
                 features[k]=1
-        #print(features)
+        print(outputs[0])
         ground_truth = batch['labels']
         for j in range(13):
             if(features[j]==1 and ground_truth[0][j]==1):
@@ -185,7 +182,6 @@ def test_data(dataset_loader, filename):
             f_2 = 1.25 * ((precision * recall) / (precision + recall))
             avg_f2 = avg_f2 + f_2
             num = num + 1
-    f.close()
     print(avg_f2/num)
 
 
