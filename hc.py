@@ -357,12 +357,13 @@ try:
                           validation_steps=np.ceil(len(x_valid)/16),
                           callbacks=callbacks,
                           initial_epoch=0)
-except:
+except Exception as e:
+    print("Exception caught")
+    print(str(e))
     print("Stopping training...")
 
-
 #Compile model and set all layers trainable
-optimizer = Adam(0.0001, decay=0.00000001)
+optimizer = Adam(0.0005, decay=0.00000001)
 model.compile(loss=my_loss, optimizer=optimizer, metrics=['accuracy', fbeta_score_K])
 model.load_weights('amazon_2007.hdf5', by_name=True)
 for layer in base_model.layers:
@@ -380,7 +381,9 @@ try:
                           validation_steps=np.ceil(len(x_valid)/16),
                           callbacks=callbacks,
                           initial_epoch=0)
-except:
+except Exception as e:
+    print("Exception caught")
+    print(str(e))
     print("Stopping second part of training...")
 
 model.load_weights('amazon_2007.hdf5')
