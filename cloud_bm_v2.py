@@ -161,10 +161,12 @@ def validate(model, val_loader, batch_size, crit):
     if torch.cuda:
         model.cuda()
 
-    if crit == "MSE":
+    if crit == "MSE" and False:
         criterion = nn.MSELoss()
     elif crit == "CrossEntropy":
         criterion = nn.CrossEntropyLoss(weight=class_weights)
+    elif crit == "BCE":
+        criterion = nn.BCEWithLogitsLoss()
     else:
         print("unrecognized loss function {}".format(crit))
 
@@ -233,7 +235,7 @@ def lr(opt, gamma, tot_batches, batches_per_epoch):
         for p in opt.param_groups:
                 p['lr'] = new
          
-def train(model, dataset_loader, val_loader, batch_size, crit="MSE", save_every=.3, input_dict=False):
+def train(model, dataset_loader, val_loader, batch_size, crit="BCE", save_every=.3, input_dict=False):
         x = 10000
         if use_crayon:
                 c = CrayonClient(hostname="localhost")
@@ -246,10 +248,12 @@ def train(model, dataset_loader, val_loader, batch_size, crit="MSE", save_every=
         if torch.cuda:
                 model.cuda()
         opt = optim.Adam(model.parameters(), lr=LR, weight_decay=.005)
-        if crit == "MSE":
+        if crit == "MSE" and False:
                 criterion = nn.MSELoss()
         elif crit == "CrossEntropy":
                 criterion = nn.CrossEntropyLoss(weight=class_weights)
+        elif crit == "BCE":
+                criterion = nn.BCEWithLogitsLoss()
         else:
                 print("unrecognized loss function {}".format(crit))
                 exit(1)

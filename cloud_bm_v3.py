@@ -157,51 +157,6 @@ val_transform = transforms.Compose([
     Normalization()])
 ############### End Custom Transforms ########################
 ############### Validation ###################################
-def validate(model, val_loader, batch_size, crit, input_dict=False):
-    if torch.cuda:
-        model.cuda()
-
-    if crit == "MSE":
-        criterion = nn.MSELoss()
-    elif crit == "CrossEntropy":
-        criterion = nn.CrossEntropyLoss(weight=class_weights)
-    else:
-        print("unrecognized loss function {}".format(crit))
-
-    model.eval()
-    i=0
-    running_loss = 0.0
-    for batch in val_loader:
-        i+=1
-        inputs, targets = batch['image'], batch['labels']
-        targets = torch.squeeze(targets)
-
-        if torch.cuda:
-            inputs = inputs.cuda()
-            targets = targets.cuda()
-        if crit == "CrossEntropy":
-            targets = targets.long()
-
-        if input_dict:
-            x = batch['image_scaled']
-            if torch.cuda:
-                x = x.cuda()
-            inp = (Variable(inputs), Variable(x))
-        else:
-            inp = (Variable(inputs),)
-        targets = Variable(targets)
-        outputs = model(*inp)
-        loss = criterion(outputs, targets)
-        running_loss += loss.data[0]
-        del inputs, targets, outputs, loss, inp
-
-    print("***Validation***")
-    print(running_loss/(i*1.0))
-    print("*End Validation*")
-
-    model.train()
-    return running_loss/(i*1.0)
-
 ############# End Validation ##################################
 
 def save_checkpoint(state, is_best, filename="validation.pth.tar"):
@@ -233,84 +188,8 @@ def lr(opt, gamma, tot_batches, batches_per_epoch):
         for p in opt.param_groups:
                 p['lr'] = new
          
-def train(model, dataset_loader, val_loader, batch_size, crit="MSE", save_every=.3, input_dict=False):
-        x = 10000
-        if use_crayon:
-                c = CrayonClient(hostname="localhost")
-                for _ in range(5000):
-                        try:
-                                d = c.create_experiment(str(x))
-                        except:
-                                x += 1
-                print("Tensorboard: {}".format(x))
-        if torch.cuda:
-                model.cuda()
-        opt = optim.Adam(model.parameters(), lr=LR, weight_decay=.005)
-        if crit == "MSE":
-                criterion = nn.MSELoss()
-        elif crit == "CrossEntropy":
-                criterion = nn.CrossEntropyLoss(weight=class_weights)
-        else:
-                print("unrecognized loss function {}".format(crit))
-                exit(1)
-        model.train()
-        best_prec = 2e15
-        best_val = 2e15
-        tot_batches = 0
-        st = 0
-        validate_every = int(save_every * len(dataset_loader))
-        print("Validating every {} batches".format(validate_every))
 
-        for epoch in range(500):
-                running_loss = 0.0
-                i=0
-                for batch in dataset_loader:
-                        lr(opt, .2, tot_batches, len(dataset_loader))
-                        tot_batches += 1
-                        i+=1
-                        inputs, targets = batch['image'], batch['labels']
-                        targets = torch.squeeze(targets)
-                        if crit == "CrossEntropy":
-                                targets = targets.long()
-                        
-                        if torch.cuda:
-                                inputs = inputs.cuda()
-                                targets = targets.cuda()
-                        if input_dict:
-                            x = batch['image_scaled']
-                            if torch.cuda:
-                                x = x.cuda()
-                            inp = (Variable(inputs), Variable(x))
-                        else:
-                            inp = (Variable(inputs),)
-                        targets = Variable(targets)
-                        opt.zero_grad()
-                        out = model(*inp)
-
-                        loss = criterion(out, targets)
-                        if use_crayon:
-                                d.add_scalar_value("loss", loss.data[0])
-                        running_loss += loss.data[0]
-                        loss.backward()
-                        opt.step()
-            
-                        del inputs, targets, out, loss, inp
-
-                        #Training Set Loss (Computationally Inexpensive)
-                        precision = running_loss/(i*1.0)
-                        best_prec = precise(precision, best_prec, epoch, tot_batches, model, opt, i, True)
-                        #if i % 2 == 1:
-                        if tot_batches % validate_every == validate_every-1:
-                            print("Validation check")
-                            precision=validate(model, val_loader, batch_size, crit, input_dict=False)
-                            if use_crayon:
-                                    d.add_scalar_value("val loss", precision)
-                            best_val = precise(precision, best_val, epoch, tot_batches, model, opt, i, False)
-                
-                #precision = validate(model, val_loader, batch_size)
-                #best_val = precise(precision, best_val, epoch, tot_batches, model, opt, i, False)
-
-
+from cloud_bm_v2 import train, validate
 
 if __name__ == "__main__":
     training_file = os.getcwd() + "/train.csv"
@@ -351,7 +230,7 @@ if __name__ == "__main__":
     y[:, 3, :] = (x[:, 0, :]+x[:, 1, :]+x[:, 2, :])/3.0
     model.features[0].weight.data = torch.from_numpy(y).float()
     model.features[0].in_channels = 13
-    train(model, dataset_loader, validation_loader, batch_size, crit="MSE")
+    train(model, dataset_loader, validation_loader, batch_size)
 
 
 #end
