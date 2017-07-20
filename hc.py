@@ -351,7 +351,7 @@ model.compile(loss=my_loss, optimizer=optimizer, metrics=['accuracy', fbeta_scor
 try:
     model.fit_generator(generator=batch_generator_train(list(zip(x_train, y_train)), IMG_SIZE, BATCH),
                           steps_per_epoch=np.ceil(len(x_train)/BATCH),
-                          epochs=100,
+                          epochs=1,
                           verbose=1,
                           validation_data=batch_generator_train(list(zip(x_valid, y_valid)), IMG_SIZE, 16),
                           validation_steps=np.ceil(len(x_valid)/16),
