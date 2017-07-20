@@ -234,13 +234,13 @@ def f2_score(y_true, y_pred):
     score = fbeta_score(y_true, y_pred, beta=2, average='samples')
     return score
 
-GLOBAL_PATH = 'D:/G/Amazon/'
-TRAIN_FOLDER = 'D:/g/amazon/train-jpg-res/' #All train files resized to 224*224
-TEST_FOLDER = 'D:/G/Amazon/test-jpg/' #All test files in one folder
-F_CLASSES = GLOBAL_PATH + 'train_v2.csv'
+GLOBAL_PATH = '/cluster/2018nsardana/kaggle/kaggle-amazon/'
+TRAIN_FOLDER = '../train/train-jpg/' #All train files resized to 224*224
+TEST_FOLDER = '../test/test-jpg/' #All test files in one folder
+F_CLASSES = GLOBAL_PATH + '../train/train_v2.csv'
 
 df_train = pd.read_csv(F_CLASSES)
-df_test = pd.read_csv(GLOBAL_PATH + 'sample_submission_v4.csv')
+df_test = pd.read_csv(GLOBAL_PATH + 'sample_submission.csv')
 
 labels = ['blow_down',
           'bare_ground',
