@@ -25,6 +25,9 @@ def read_data(filename):
 	img = []
 	feat = []
 	cloud = []
+	cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy']
+	feature_labels=['primary', 'agriculture', 'water', 'habitation', 'road', 'cultivation', 'slash_burn', 'conventional_mine', 'bare_ground', 'artisinal_mine', 'blooming', 'selective_logging', 'blow_down']):
+	
 	if sys.version_info[0] == 2:
 		x = 'rb'
 	else:
