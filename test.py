@@ -122,7 +122,7 @@ def squeezenet():
     y[:, 3, :] = (x[:, 0, :]+x[:, 1, :]+x[:, 2, :])/3.0
     model.features[0].weight.data = torch.from_numpy(y).float()
     model.features[0].in_channels = 4
-    model.load_state_dict(torch.load("model_squeeze_feature.pth.tar"))
+    model.load_state_dict(torch.load("model_resnet.pth.tar"))
     return model
 ############### End Squeezenet Implementation ########################
 from fc import FC
