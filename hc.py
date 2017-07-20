@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from keras.models import Sequential, Model
-from keras.layers import Dense, Dropout, Flatten, Merge, merge
+from keras.layers import Dense, Dropout, Flatten, Merge, merge, Lambda
 from keras.layers import Input, Activation, Dense, Flatten
 from keras.layers.convolutional import Conv2D, MaxPooling2D, AveragePooling2D
 from multi_gpu import make_parallel #Available here https://github.com/kuza55/keras-extras/blob/master/utils/multi_gpu.py
@@ -20,7 +20,7 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from sklearn.metrics import fbeta_score
 from keras.optimizers import Adam, SGD
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0, 1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2, 1"
 
 def fbeta_loss(y_true, y_pred):
     beta_squared = 4
@@ -127,7 +127,7 @@ def batch_generator_train(zip_list, img_size, batch_size, is_train=True, shuffle
 
             image = cv2.imread(file) #cv2.resize(cv2.imread(file), (img_size,img_size)) / 255.
             image = image[:, :, [2, 1, 0]] - mean_pix
-            image = cv2.resize(image, (224, 224))
+            image = cv2.resize(image, (299, 299))
 
             rnd_flip = np.random.randint(2, dtype=int)
             rnd_rotate = np.random.randint(2, dtype=int)
@@ -176,6 +176,7 @@ def batch_generator_test(zip_list, img_size, batch_size, shuffle=True):
 
             image = cv2.resize(cv2.imread(file), (img_size, img_size))
             image = image[:, :, [2, 1, 0]] - mean_pix
+            image = cv2.resize(image, (299, 299))
             image_list.append(image)
             mask_list.append(mask)
 
@@ -252,34 +253,34 @@ labels = ['blow_down',
           'blooming',
           'cultivation',
           'artisinal_mine',
-          'haze',
           'primary',
           'slash_burn',
           'habitation',
-          'clear',
           'road',
           'selective_logging',
-          'partly_cloudy',
           'agriculture',
           'water',
+          'haze',
+          'clear',
+          'partly_cloudy',
           'cloudy']
-label_map = {'agriculture': 14,
+label_map = {'agriculture': 11,
              'artisinal_mine': 5,
              'bare_ground': 1,
              'blooming': 3,
              'blow_down': 0,
-             'clear': 10,
+             'clear': 14,
              'cloudy': 16,
              'conventional_mine': 2,
              'cultivation': 4,
-             'habitation': 9,
-             'haze': 6,
-             'partly_cloudy': 13,
-             'primary': 7,
-             'road': 11,
-             'selective_logging': 12,
-             'slash_burn': 8,
-             'water': 15}
+             'habitation': 8,
+             'haze': 13,
+             'partly_cloudy': 15,
+             'primary': 6,
+             'road': 9,
+             'selective_logging': 10,
+             'slash_burn': 7,
+             'water': 12}
 
 flatten = lambda l: [item for sublist in l for item in sublist]
 
@@ -312,47 +313,66 @@ callbacks = [ModelCheckpoint('amazon_2007.hdf5', monitor='val_loss', save_best_o
              EarlyStopping(monitor='val_loss', patience=5, verbose=0)]
 
 BATCH = 128
-IMG_SIZE = 224
+IMG_SIZE = 299
 mean_pix = np.array([102.9801, 115.9465, 122.7717]) #It is BGR
 
-from keras.applications import ResNet50
+from keras.applications import ResNet50, InceptionV3
+from keras import losses
+import keras.backend as K
+
+def my_loss(y_true, y_pred):
+    x = losses.binary_crossentropy(y_true[:, :13], y_pred[:, :13])
+    z = losses.categorical_crossentropy(y_true[:, 13:], y_pred[:, 13:])
+    return x + z/1.0 # to adjust
+
+def my_activation(x):
+    v = K.sigmoid(x[:, :13])
+    w = K.softmax(x[:, 13:])
+    return K.concatenate([v, w])
 
 #Compile model and set non-top layets non-trainable (warm-up)
-base_model = ResNet50(include_top=False, input_shape=(IMG_SIZE,IMG_SIZE,3), pooling='avg', weights='imagenet')
+base_model = InceptionV3(include_top=False, input_shape=(IMG_SIZE,IMG_SIZE,3), pooling='avg', weights='imagenet')
 for layer in base_model.layers:
     layer.trainable = False
 
 x = base_model.output
 x = Dense(2048, activation='relu')(x)
 x = Dropout(0.25)(x)
-output = Dense(17, activation='sigmoid')(x)
+x = Dense(17)(x)
+output = Lambda(my_activation)(x)
+
 
 optimizer = Adam(0.001, decay=0.0003)
 model = Model(inputs=base_model.inputs, outputs=output)
 model = make_parallel(model, 2)
 
-model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy', fbeta_score_K])
+model.compile(loss=my_loss, optimizer=optimizer, metrics=['accuracy', fbeta_score_K])
 
-model.fit_generator(generator=batch_generator_train(list(zip(x_train, y_train)), IMG_SIZE, BATCH),
+try:
+    model.fit_generator(generator=batch_generator_train(list(zip(x_train, y_train)), IMG_SIZE, BATCH),
                           steps_per_epoch=np.ceil(len(x_train)/BATCH),
-                          epochs=1,
+                          epochs=100,
                           verbose=1,
                           validation_data=batch_generator_train(list(zip(x_valid, y_valid)), IMG_SIZE, 16),
                           validation_steps=np.ceil(len(x_valid)/16),
                           callbacks=callbacks,
                           initial_epoch=0)
+except:
+    print("Stopping training...")
 
 
 #Compile model and set all layers trainable
 optimizer = Adam(0.0001, decay=0.00000001)
-model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy', fbeta_score_K])
+model.compile(loss=my_loss, optimizer=optimizer, metrics=['accuracy', fbeta_score_K])
 model.load_weights('amazon_2007.hdf5', by_name=True)
 for layer in base_model.layers:
     layer.trainable = True
 
 BATCH = 32
-model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy', fbeta_score_K])
-model.fit_generator(generator=batch_generator_train(list(zip(x_train, y_train)), IMG_SIZE, BATCH),
+model.compile(loss=my_loss, optimizer=optimizer, metrics=['accuracy', fbeta_score_K])
+try:
+    print("Starting second part of training...")
+    model.fit_generator(generator=batch_generator_train(list(zip(x_train, y_train)), IMG_SIZE, BATCH),
                           steps_per_epoch=np.ceil(len(x_train)/BATCH),
                           epochs=50,
                           verbose=1,
@@ -360,6 +380,8 @@ model.fit_generator(generator=batch_generator_train(list(zip(x_train, y_train)),
                           validation_steps=np.ceil(len(x_valid)/16),
                           callbacks=callbacks,
                           initial_epoch=0)
+except:
+    print("Stopping second part of training...")
 
 model.load_weights('amazon_2007.hdf5')
 
