@@ -13,7 +13,7 @@ from resnet_data.inceptionresnetv2.pytorch_load import inceptionresnetv2, Incept
 from cloud_bm_v2 import ToTensor, Normalization, AmazonDataSet, read_data, train, Scale, RandomHorizontalFlip, RandomVerticalFlip, RandomSizedCrop
 
 
-def get_resnet(device_ids, num_outs, sigmoid=False, dropout=True):
+def get_resnet(device_ids, num_outs, sigmoid=True, dropout=True):
     f = InceptionResnetV2.forward
     def forward(self, x):
         x = f(self, x)

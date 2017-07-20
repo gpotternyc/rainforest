@@ -166,7 +166,7 @@ def validate(model, val_loader, batch_size, crit):
     elif crit == "CrossEntropy":
         criterion = nn.CrossEntropyLoss(weight=class_weights)
     elif crit == "BCE":
-        criterion = nn.BCEWithLogitsLoss()
+        criterion = nn.BCELoss()
     else:
         print("unrecognized loss function {}".format(crit))
 
@@ -253,7 +253,7 @@ def train(model, dataset_loader, val_loader, batch_size, crit="BCE", save_every=
         elif crit == "CrossEntropy":
                 criterion = nn.CrossEntropyLoss(weight=class_weights)
         elif crit == "BCE":
-                criterion = nn.BCEWithLogitsLoss()
+                criterion = nn.BCELoss()
         else:
                 print("unrecognized loss function {}".format(crit))
                 exit(1)

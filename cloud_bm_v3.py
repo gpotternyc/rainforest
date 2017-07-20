@@ -201,6 +201,7 @@ if __name__ == "__main__":
         x = o(self, x)
         x = self.dropout(x)
         x = self.last(x)
+        x = self.sigmoid(x)
         return x
     SqueezeNet.forward = forward
     
@@ -218,6 +219,7 @@ if __name__ == "__main__":
     model = squeezenet1_1(pretrained=True, num_classes=1000)
     model.last = nn.Linear(1000, 13)
     model.dropout = nn.Dropout(.4)
+    model.sigmoid = nn.Sigmoid()
     x = model.features[0].weight.data.numpy()
     s = x.shape
     l = []
