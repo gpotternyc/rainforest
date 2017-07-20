@@ -200,6 +200,7 @@ if __name__ == "__main__":
     def forward(self, x):
         x = o(self, x)
         x = self.dropout(x)
+        x = self.relu(x)
         x = self.last(x)
         x = self.sigmoid(x)
         return x
@@ -220,6 +221,7 @@ if __name__ == "__main__":
     model.last = nn.Linear(1000, 13)
     model.dropout = nn.Dropout(.4)
     model.sigmoid = nn.Sigmoid()
+    model.relu = nn.ReLU()
     x = model.features[0].weight.data.numpy()
     s = x.shape
     l = []
