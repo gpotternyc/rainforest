@@ -20,6 +20,7 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from sklearn.metrics import fbeta_score
 from keras.optimizers import Adam, SGD
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ["CUDA_VISIBLE_DEVICES"] = "0, 1, 2, 3"
 
 def fbeta_loss(y_true, y_pred):
@@ -206,6 +207,7 @@ def predict_generator(files, img_size, batch_size):
                 int_counter += 1
                 image = cv2.resize(cv2.imread(file), (img_size, img_size))
                 image = image[:, :, [2, 1, 0]] - mean_pix
+                image = cv2.resize(image, (299, 299))
 
                 rnd_flip = np.random.randint(2, dtype=int)
                 rnd_rotate = np.random.randint(2, dtype=int)
@@ -363,7 +365,7 @@ except Exception as e:
     print("Stopping training...")
 
 #Compile model and set all layers trainable
-optimizer = Adam(0.0005, decay=0.00000001)
+optimizer = Adam(0.0002, decay=0.00000001)
 model.compile(loss=my_loss, optimizer=optimizer, metrics=['accuracy', fbeta_score_K])
 model.load_weights('amazon_2007.hdf5', by_name=True)
 for layer in base_model.layers:
