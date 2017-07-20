@@ -30,6 +30,12 @@ if torch.cuda:
         class_weights = class_weights.cuda()
 
 class_weights = None
+class_weights = torch.Tensor([  0.1554333 ,   0.47346888,   0.78677226,   1.59310635,
+             0.72243455,   1.28233324,  27.89841737,  58.30769231,
+                      6.76423345,  17.19990924,  17.56255792,  17.14932127, 57.73038842])
+if torch.cuda:
+        class_weights = class_weights.cuda()
+
 
 def read_data(filename, cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy'],\
         feature_labels=['primary', 'agriculture', 'water', 'habitation', 'road', 'cultivation', 'slash_burn', 'conventional_mine', 'bare_ground', 'artisinal_mine', 'blooming', 'selective_logging', 'blow_down']):
@@ -165,7 +171,7 @@ def validate(model, val_loader, batch_size, crit, input_dict=False):
     elif crit == "CrossEntropy":
         criterion = nn.CrossEntropyLoss(weight=class_weights)
     elif crit == "BCE":
-        criterion = nn.BCELoss()
+        criterion = nn.BCELoss(weight=class_weights)
     else:
         print("unrecognized loss function {}".format(crit))
 
@@ -252,7 +258,7 @@ def train(model, dataset_loader, val_loader, batch_size, crit="BCE", save_every=
         elif crit == "CrossEntropy":
                 criterion = nn.CrossEntropyLoss(weight=class_weights)
         elif crit == "BCE":
-                criterion = nn.BCELoss()
+                criterion = nn.BCELoss(weight=class_weights)
         else:
                 print("unrecognized loss function {}".format(crit))
                 exit(1)
