@@ -110,7 +110,7 @@ class ToTensor(object):
 
 class Normalization(object):
     def __call__(self, sample):
-        actual_normalization=transforms.Normalize(mean=[0.076124,0.065167,0.05692,0.09764],std=[0.027227,0.024431,0.025148,0.028507])
+        actual_normalization=transforms.Normalize(mean=[77.201599174998407, 87.838408758124388, 80.416269523122835],std=[35.021203288041704, 36.668734312821215, 42.630594027308504])
         return {'image': actual_normalization(sample['image']), 'labels': sample['labels']}
 
 class Scale(object):
