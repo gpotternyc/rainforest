@@ -147,7 +147,7 @@ data_transform = transforms.Compose([
     Scale(),
     RandomHorizontalFlip(),
     RandomVerticalFlip(),
-    RandomSizedCrop(),
+    #RandomSizedCrop(),
     ToTensor(), 
     Normalization()])
 val_transform = transforms.Compose([
