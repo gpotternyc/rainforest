@@ -33,35 +33,33 @@ def read_data(filename):
 		next(csvfile)
 		datareader = csv.reader(csvfile, delimiter=' ', quotechar='|')
 		for row in datareader:
+		    """
             ################ TESTING CODE - ACTUAL RUN USE THIS ####################
-            """
-			second_split = row[0].split(',') #split on the comma between filename and first label
-			img.append(second_split[0]) #image filename
-			#Filler
-			feature_one_hot = np.zeros(13)
-			cloud_one_hot = np.zeros(1)
-			feat.append(feature_one_hot)
-			cloud.append(cloud_one_hot)
-            """
-            #########################################################################
-            ############## VALIDATION CODE - FOR GROUND TRUTH #######################
-            second_split = row[0].split(',') #split on the comma between filename and first label
-			img.append(second_split[0]) #image filename
+		    second_split = row[0].split(',') #split on the comma between filename and first label
+		    img.append(second_split[0]) #image filename
+		    #Filler
+		    feature_one_hot = np.zeros(13)
+		    cloud_one_hot = np.zeros(1)
+		    feat.append(feature_one_hot)
+		    cloud.append(cloud_one_hot)
+		    """
+		    second_split = row[0].split(',') #split on the comma between filename and first label
+		    img.append(second_split[0]) #image filename
 
-			string_feat= [second_split[1]] + row[1:]
+		    string_feat= [second_split[1]] + row[1:]
 
-			cloud_one_hot = np.zeros(1)			#not one hot vectors
-			#cloud_one_hot = np.zeros(4)			#not one hot vectors
-			feature_one_hot = np.zeros(13)
-			#look for features by iterating over labels and doing string comparison
-			for element in string_feat:
-				for index,k in enumerate(feature_labels):
-					if element==k:
-						feature_one_hot[index] = 1
-				for index,k in enumerate(cloud_labels):
-					if element==k:
-						cloud_one_hot[0] = index
-						#cloud_one_hot[index] = 1
+		    cloud_one_hot = np.zeros(1)			#not one hot vectors
+		    #cloud_one_hot = np.zeros(4)			#not one hot vectors
+		    feature_one_hot = np.zeros(13)
+		    #look for features by iterating over labels and doing string comparison
+		    for element in string_feat:
+		        for index,k in enumerate(feature_labels):
+		            if element==k:
+		                feature_one_hot[index] = 1
+		        for index,k in enumerate(cloud_labels):
+		            if element==k:
+		                cloud_one_hot[0] = index
+		                #cloud_one_hot[index] = 1
 
 			feat.append(feature_one_hot)
 			cloud.append(cloud_one_hot)
@@ -117,7 +115,9 @@ test_transform = transforms.Compose([
     Scale(),
     ToTensor(),
     Normalization()])
+############# End Custom Transforms ##################################
 
+############## SQUEEZENET IMPLEMENTATION ##############################
 def squeezenet():
 
     o = SqueezeNet.forward
@@ -143,7 +143,7 @@ def squeezenet():
     model.features[0].weight.data = torch.from_numpy(y).float()
     model.features[0].in_channels = 4
     return model
-############### End Custom Transforms ########################
+############### End Squeezenet Implementation ########################
 
 def test_data(dataset_loader, filename):
 	cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy']
@@ -161,19 +161,20 @@ def test_data(dataset_loader, filename):
 	resnet_model.eval()
 
 	for batch in dataset_loader:
-
-		inputs = batch['image']
-		if torch.cuda:
-			inputs = inputs.cuda()
-		inputs = Variable(inputs)
-		
-		#RUN THROUGH SQUEEZENET MODEL FIRST
-		outputs = resnet_model(inputs)
-		print(outputs)
-        for k in range(len(outputs)):
-            if(outputs[k]>0.75):
-                features[k]=1
-
+	    features = [0]*13
+	    inputs = batch['image']
+	    if torch.cuda:
+	        inputs = inputs.cuda()
+	    inputs = Variable(inputs)
+	    outputs = resnet_model(inputs)
+	    print(outputs)
+	    for k in range(len(outputs)):
+	        if(outputs[k]>0.75):
+	            features[k]=1
+	    print(features)
+	    ground_truth = batch['output']
+	    print(ground_truth)
+	    quit()
 
 
 
