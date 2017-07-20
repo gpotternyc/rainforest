@@ -16,11 +16,11 @@ from resnet import get_resnet
 class FC(nn.Module):
 	def __init__(self):
 		super(FC, self).__init__()
-		self.fc1 = nn.Linear(50*50*4, 25*25*4)
+		self.fc1 = nn.Linear(50*50*3, 25*25*3)
 		self.dropout1 = nn.Dropout(.3)
-		self.fc2 = nn.Linear(25*25*4, 4)
+		self.fc2 = nn.Linear(25*25*3, 4)
 	def forward(self, x):
-		x = x.view(-1, 50*50*4)
+		x = x.view(-1, 50*50*3)
 		x = self.fc1(x)
 		x = self.dropout1(x)
 		x = self.fc2(x)

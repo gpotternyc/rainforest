@@ -35,19 +35,6 @@ def get_resnet(device_ids, num_outs, sigmoid=True, dropout=True):
     in_res.dropout2 = nn.Dropout(.2)
     in_res.sigmoid = nn.Sigmoid()
 
-    x = in_res.conv2d_1a.conv.weight.data.numpy()
-    s = x.shape
-    l = []
-    for i in s:
-        l.append(i)
-    l[1] += 1
-    y = np.ones(tuple(l))
-    for i in range(3):
-        y[:, i, :] = x[:, i, :]
-    y[:, 3, :] = (x[:, 0, :]+x[:, 1, :]+x[:, 2, :])/3.0
-    in_res.conv2d_1a.conv.weight.data = torch.from_numpy(y).float()
-    in_res.conv2d_1a.conv.in_channels = 4
-
     parallelize = ['conv2d_1a', 'conv2d_2a', 'conv2d_2b', 'conv2d_3b', 'conv2d_4a',
                     'mixed_5b', 'repeat', 'mixed_6a', 'repeat_1', 'mixed_7a',
                     'repeat_2', 'block8', 'conv2d_7b']

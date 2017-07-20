@@ -222,18 +222,6 @@ if __name__ == "__main__":
     model.dropout = nn.Dropout(.4)
     model.sigmoid = nn.Sigmoid()
     model.relu = nn.ReLU()
-    x = model.features[0].weight.data.numpy()
-    s = x.shape
-    l = []
-    for i in s:
-        l.append(i)
-    l[1] += 1
-    y = np.ones(tuple(l))
-    for i in range(3):
-        y[:, i, :] = x[:, i, :]
-    y[:, 3, :] = (x[:, 0, :]+x[:, 1, :]+x[:, 2, :])/3.0
-    model.features[0].weight.data = torch.from_numpy(y).float()
-    model.features[0].in_channels = 13
     train(model, dataset_loader, validation_loader, batch_size)
 
 

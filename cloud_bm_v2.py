@@ -343,18 +343,6 @@ if __name__ == "__main__":
     model = squeezenet1_1(pretrained=True, num_classes=1000)
     model.last = nn.Linear(1000, 4)
     model.dropout = nn.Dropout(.4)
-    x = model.features[0].weight.data.numpy()
-    s = x.shape
-    l = []
-    for i in s:
-        l.append(i)
-    l[1] += 1
-    y = np.ones(tuple(l))
-    for i in range(3):
-        y[:, i, :] = x[:, i, :]
-    y[:, 3, :] = (x[:, 0, :]+x[:, 1, :]+x[:, 2, :])/3.0
-    model.features[0].weight.data = torch.from_numpy(y).float()
-    model.features[0].in_channels = 4
     train(model, dataset_loader, validation_loader, batch_size, crit="CrossEntropy")
 
 
