@@ -20,7 +20,7 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from sklearn.metrics import fbeta_score
 from keras.optimizers import Adam, SGD
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2, 1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0, 1, 2, 3"
 
 def fbeta_loss(y_true, y_pred):
     beta_squared = 4
