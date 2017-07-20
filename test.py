@@ -18,6 +18,7 @@ import sys
 import shutil
 import random
 import time
+from cloud_bm_v2 import AmazonDataSet
 from PIL import Image
 
 
@@ -70,31 +71,6 @@ def read_data(filename):
             
     return img, feat, cloud
 
-########### Dataset #################################################
-class AmazonDataSet(Dataset):
-
-    def __init__(self, img_list, labels_list, root_dir, channels, transform=None):
-        self.images = img_list
-        self.labels = labels_list
-        self.root_dir = root_dir
-        self.channels = channels
-        self.transform = transform
-
-    def __len__(self):
-        return len(self.images)
-
-    def __getitem__(self,idx):
-        img_name = os.getcwd()+ self.root_dir + self.images[idx] + ".tif"
-        tif = TIFF.open(img_name, mode='r')
-        image = tif.read_image()
-        sample = {'image':image, 'labels': self.labels[idx]}
-        #print(sample)
-        if(self.transform):
-            sample = self.transform(sample)
-        sample['image'] = sample['image'].narrow(0,0,self.channels)
-        return sample
-
-################# End Dataset #######################################
 ############## Custom Transforms ####################################
 class ToTensor(object):
      def __call__(self, sample):
@@ -147,6 +123,7 @@ def squeezenet():
     model.features[0].in_channels = 4
     return model
 ############### End Squeezenet Implementation ########################
+from fc import FC
 
 def test_data(dataset_loader, filename):
     cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy']
@@ -156,15 +133,20 @@ def test_data(dataset_loader, filename):
     #squeezemodel = squeezenet()
     resnet_model = get_resnet([0,1,2,3], 13)
     resnet_model.load_state_dict(torch.load("model_resnetppp.pth.tar"))
+    cloud_model = FC()
+    cloud_model.load_state_dict(torch.load("model_resnet.pth.tar"))
     if torch.cuda:
         #squeezemodel.cuda()
         resnet_model.cuda()
-    
+        cloud_model.cuda()    
+
     #squeezemodel.eval()
     resnet_model.eval()
+    cloud_model.eval()
     
     avg_f2 = 0
     num = 0
+    f = open("test_results.txt", "w")
     for batch in dataset_loader:
         if num%100==0:
             print("!!!!" + str(num))
@@ -175,11 +157,15 @@ def test_data(dataset_loader, filename):
         features = [0]*13
     
         inputs = batch['image']
+        sc = batch['image_scaled']
         if torch.cuda:
             inputs = inputs.cuda()
         inputs = Variable(inputs)
         outputs = resnet_model(inputs)
         outputs = outputs.cpu().data.numpy()
+        outputs2 = cloud_mode(Variable(sc)).cpu().data.numpy()
+        for i in range(len(batch)):
+            f.write(str(inputs[i])+"|"+str(outputs2[i])+"|"+str(outputs[i])+"\n")
         for k in range(13):
             if(outputs[0][k]>0.5):
                 features[k]=1
@@ -199,12 +185,13 @@ def test_data(dataset_loader, filename):
             f_2 = 1.25 * ((precision * recall) / (precision + recall))
             avg_f2 = avg_f2 + f_2
             num = num + 1
+    f.close()
     print(avg_f2/num)
 
 
 test_file = os.getcwd()+ "/validation.csv"                                              #change to PATH_TO_FILE_FROM_CURRENT_DIRECTORY
 test_img_labels, test_features_gt, test_cloud_gt  = read_data(test_file)                   #image filenames, feature and cloud ground truth arrays
-test_features = AmazonDataSet(test_img_labels, test_features_gt, "/../train/train-tif-v2/", 4, transform=test_transform)
+test_features = AmazonDataSet(test_img_labels, test_features_gt, "/../train/train-tif-v2/", 4, transform=test_transform, return_scaled=True)
 test_loader = DataLoader(test_features, batch_size=1, shuffle=False, num_workers=1)
 
 test_data(test_loader, "output.csv")
