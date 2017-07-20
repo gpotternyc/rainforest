@@ -22,53 +22,53 @@ from PIL import Image
 
 
 def read_data(filename):
-	img = []
-	feat = []
-	cloud = []
-	cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy']
-	feature_labels=['primary', 'agriculture', 'water', 'habitation', 'road', 'cultivation', 'slash_burn', 'conventional_mine', 'bare_ground', 'artisinal_mine', 'blooming', 'selective_logging', 'blow_down']
+    img = []
+    feat = []
+    cloud = []
+    cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy']
+    feature_labels=['primary', 'agriculture', 'water', 'habitation', 'road', 'cultivation', 'slash_burn', 'conventional_mine', 'bare_ground', 'artisinal_mine', 'blooming', 'selective_logging', 'blow_down']
 
-	if sys.version_info[0] == 2:
-		x = 'rb'
-	else:
-		x = 'r'
-	with open(filename, x) as csvfile:
-		next(csvfile)
-		datareader = csv.reader(csvfile, delimiter=' ', quotechar='|')
-		for row in datareader:
-		    """
+    if sys.version_info[0] == 2:
+        x = 'rb'
+    else:
+        x = 'r'
+    with open(filename, x) as csvfile:
+        next(csvfile)
+        datareader = csv.reader(csvfile, delimiter=' ', quotechar='|')
+        for row in datareader:
+            """
             ################ TESTING CODE - ACTUAL RUN USE THIS ####################
-		    second_split = row[0].split(',') #split on the comma between filename and first label
-		    img.append(second_split[0]) #image filename
-		    #Filler
-		    feature_one_hot = np.zeros(13)
-		    cloud_one_hot = np.zeros(1)
-		    feat.append(feature_one_hot)
-		    cloud.append(cloud_one_hot)
-		    """
-		    second_split = row[0].split(',') #split on the comma between filename and first label
-		    img.append(second_split[0]) #image filename
+            second_split = row[0].split(',') #split on the comma between filename and first label
+            img.append(second_split[0]) #image filename
+            #Filler
+            feature_one_hot = np.zeros(13)
+            cloud_one_hot = np.zeros(1)
+            feat.append(feature_one_hot)
+            cloud.append(cloud_one_hot)
+            """
+            second_split = row[0].split(',') #split on the comma between filename and first label
+            img.append(second_split[0]) #image filename
 
-		    string_feat= [second_split[1]] + row[1:]
+            string_feat= [second_split[1]] + row[1:]
 
-		    cloud_one_hot = np.zeros(1)			#not one hot vectors
-		    #cloud_one_hot = np.zeros(4)			#not one hot vectors
-		    feature_one_hot = np.zeros(13)
-		    #look for features by iterating over labels and doing string comparison
-		    for element in string_feat:
-		        for index,k in enumerate(feature_labels):
-		            if element==k:
-		                feature_one_hot[index] = 1
-		        for index,k in enumerate(cloud_labels):
-		            if element==k:
-		                cloud_one_hot[0] = index
-		                #cloud_one_hot[index] = 1
+            cloud_one_hot = np.zeros(1)         #not one hot vectors
+            #cloud_one_hot = np.zeros(4)            #not one hot vectors
+            feature_one_hot = np.zeros(13)
+            #look for features by iterating over labels and doing string comparison
+            for element in string_feat:
+                for index,k in enumerate(feature_labels):
+                    if element==k:
+                        feature_one_hot[index] = 1
+                for index,k in enumerate(cloud_labels):
+                    if element==k:
+                        cloud_one_hot[0] = index
+                        #cloud_one_hot[index] = 1
 
-			feat.append(feature_one_hot)
-			cloud.append(cloud_one_hot)
+            feat.append(feature_one_hot)
+            cloud.append(cloud_one_hot)
             ################### END VALIDATION CODE #################################
             
-	return img, feat, cloud
+    return img, feat, cloud
 
 ########### Dataset #################################################
 class AmazonDataSet(Dataset):
@@ -149,72 +149,68 @@ def squeezenet():
 ############### End Squeezenet Implementation ########################
 
 def test_data(dataset_loader, filename):
-	cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy']
-	feature_labels=['primary', 'agriculture', 'water', 'habitation', 'road', 'cultivation', 'slash_burn', 'conventional_mine', 'bare_ground', 'artisinal_mine', 'blooming', 'selective_logging', 'blow_down']
+    cloud_labels=['haze', 'clear', 'cloudy', 'partly_cloudy']
+    feature_labels=['primary', 'agriculture', 'water', 'habitation', 'road', 'cultivation', 'slash_burn', 'conventional_mine', 'bare_ground', 'artisinal_mine', 'blooming', 'selective_logging', 'blow_down']
 
-	########### Configure Model ############################
-	#squeezemodel = squeezenet()
-	resnet_model = get_resnet([0,1,2,3], 13)
-	resnet_model.load_state_dict(torch.load("model_resnetppp.pth.tar"))
-	if torch.cuda:
-	    #squeezemodel.cuda()
-	    resnet_model.cuda()
-	
-	#squeezemodel.eval()
-	resnet_model.eval()
-	
-	avg_f2 = 0
-	num = 0
-	for batch in dataset_loader:
-	
-	    true_positive, false_positive, false_negative = 0.0, 0.0, 0.0
-	    precision, recall = 0.0, 0.0
-	    f_2 = 0.0
+    ########### Configure Model ############################
+    #squeezemodel = squeezenet()
+    resnet_model = get_resnet([0,1,2,3], 13)
+    resnet_model.load_state_dict(torch.load("model_resnetppp.pth.tar"))
+    if torch.cuda:
+        #squeezemodel.cuda()
+        resnet_model.cuda()
+    
+    #squeezemodel.eval()
+    resnet_model.eval()
+    
+    avg_f2 = 0
+    num = 0
+    for batch in dataset_loader:
+    
+        true_positive, false_positive, false_negative = 0.0, 0.0, 0.0
+        precision, recall = 0.0, 0.0
+        f_2 = 0.0
 
-	    features = [0]*13
-	
-	    inputs = batch['image']
-	    if torch.cuda:
-	        inputs = inputs.cuda()
-	    inputs = Variable(inputs)
-	    outputs = resnet_model(inputs)
-	    #print(outputs)
-	    for k in range(13):
-	        if(outputs[0][k]>0.5):
-	            features[k]=1
-	    #print(features)
-	    ground_truth = batch['labels']
-	    #print(ground_truth)
-	    """Calculating F-Score"""
-	    for j in range(13):
-	        #print(ground_truth[0][j])
-	        #print(ground_truth[0][j]==1)
-	        #print(ground_truth[0][j]==0)
-	        #print(features[j])
-	        #quit()
-	        if(features[j]==1 and ground_truth[0][j]==1):
-	            true_positive = true_positive + 1
-	        if(features[j]==1 and ground_truth[0][j]==0):
-	            false_positive = false_positive + 1
-	        if(features[j]==0 and grount_truth[0][j]==1):
-	            false_negative = false_negative + 1
-	    print(true_positive, false_positive, false_negative)
+        features = [0]*13
+    
+        inputs = batch['image']
+        if torch.cuda:
+            inputs = inputs.cuda()
+        inputs = Variable(inputs)
+        outputs = resnet_model(inputs)
+        #print(outputs)
+        for k in range(13):
+            if(outputs[0][k]>0.5):
+                features[k]=1
+        #print(features)
+        ground_truth = batch['labels']
+        #print(ground_truth)
+        """Calculating F-Score"""
+        for j in range(13):
+            #print(ground_truth[0][j])
+            #print(ground_truth[0][j]==1)
+            #print(ground_truth[0][j]==0)
+            #print(features[j])
+            #quit()
+            if(features[j]==1 and ground_truth[0][j]==1):
+                true_positive = true_positive + 1
+            if(features[j]==1 and ground_truth[0][j]==0):
+                false_positive = false_positive + 1
+            if(features[j]==0 and grount_truth[0][j]==1):
+                false_negative = false_negative + 1
+        print(true_positive, false_positive, false_negative)
         if(true_positive!=0):
-	        precision = true_positive / (true_positive + false_positive)
-	        recall = true_positive / (true_positive + false_negative)
+            precision = true_positive / (true_positive + false_positive)
+            recall = true_positive / (true_positive + false_negative)
         elif(true_positive==0):
-	        if(false_negative==0):
-	            recall=1
-	            precision = 0
-	        if(false_positive==0):
-	            recall=0
-	            precision=1
-
-
-	f2 = 0.0
+            if(false_negative==0):
+                recall=1
+                precision = 0
+            if(false_positive==0):
+                recall=0
+                precision=1
         else:
             print("wtf is going on")
-    
     f_2 = 1.25 * ((precision * recall) / (precision + recall))
     avg_f2 = avg_f2 + f_2
     num = num + 1
