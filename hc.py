@@ -358,10 +358,9 @@ try:
                           validation_steps=np.ceil(len(x_valid)/16),
                           callbacks=callbacks,
                           initial_epoch=0)
-except Exception as e:
+except KeyboardInterrupt:
     print("Exception caught")
-    print(str(e))
-    print("Stopping training...")
+    print("Stopping second part of training...")
 
 #Compile model and set all layers trainable
 optimizer = Adam(0.0002, decay=0.00000001)
@@ -382,9 +381,8 @@ try:
                           validation_steps=np.ceil(len(x_valid)/16),
                           callbacks=callbacks,
                           initial_epoch=0)
-except Exception as e:
+except KeyboardInterrupt:
     print("Exception caught")
-    print(str(e))
     print("Stopping second part of training...")
 
 model.load_weights('amazon_2007.hdf5')
