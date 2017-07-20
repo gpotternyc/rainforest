@@ -1,3 +1,6 @@
+# https://www.kaggle.com/sashakorekov/end-to-end-resnet50-with-tta-lb-0-93/code
+# Apache 2.0
+# Minor improvements and compatibility changes made
 from __future__ import division
 import cv2
 import numpy as np
@@ -124,6 +127,7 @@ def batch_generator_train(zip_list, img_size, batch_size, is_train=True, shuffle
 
             image = cv2.imread(file) #cv2.resize(cv2.imread(file), (img_size,img_size)) / 255.
             image = image[:, :, [2, 1, 0]] - mean_pix
+            image = cv2.resize(image, (224, 224))
 
             rnd_flip = np.random.randint(2, dtype=int)
             rnd_rotate = np.random.randint(2, dtype=int)
@@ -234,7 +238,7 @@ def f2_score(y_true, y_pred):
     score = fbeta_score(y_true, y_pred, beta=2, average='samples')
     return score
 
-GLOBAL_PATH = '/cluster/2018nsardana/kaggle/kaggle-amazon/'
+GLOBAL_PATH = './'
 TRAIN_FOLDER = '../train/train-jpg/' #All train files resized to 224*224
 TEST_FOLDER = '../test/test-jpg/' #All test files in one folder
 F_CLASSES = GLOBAL_PATH + '../train/train_v2.csv'
