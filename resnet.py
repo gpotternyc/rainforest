@@ -47,7 +47,7 @@ def get_resnet(device_ids, num_outs, sigmoid=True, dropout=True):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--load_weights", default=None, type=str)
-    parser.add_argument("--img_dir", default="train/train-tif-v2/", type=str)
+    parser.add_argument("--img_dir", default="train/train-jpg/", type=str)
     args = parser.parse_args()
     
     in_res = get_resnet([0,1,2,3], 13)
