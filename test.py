@@ -166,7 +166,8 @@ def test_data(dataset_loader, filename):
     avg_f2 = 0
     num = 0
     for batch in dataset_loader:
-    
+        if num%100==0:
+            print("!!!!" + str(num))
         true_positive, false_positive, false_negative = 0.0, 0.0, 0.0
         precision, recall = 0.0, 0.0
         f_2 = 0.0
@@ -178,43 +179,26 @@ def test_data(dataset_loader, filename):
             inputs = inputs.cuda()
         inputs = Variable(inputs)
         outputs = resnet_model(inputs)
-        #print(outputs)
+        outputs = outputs.cpu().data.numpy()
         for k in range(13):
             if(outputs[0][k]>0.5):
                 features[k]=1
         #print(features)
         ground_truth = batch['labels']
-        #print(ground_truth)
-        """Calculating F-Score"""
         for j in range(13):
-            #print(ground_truth[0][j])
-            #print(ground_truth[0][j]==1)
-            #print(ground_truth[0][j]==0)
-            #print(features[j])
-            #quit()
             if(features[j]==1 and ground_truth[0][j]==1):
                 true_positive = true_positive + 1
             if(features[j]==1 and ground_truth[0][j]==0):
                 false_positive = false_positive + 1
-            if(features[j]==0 and grount_truth[0][j]==1):
+            if(features[j]==0 and ground_truth[0][j]==1):
                 false_negative = false_negative + 1
         print(true_positive, false_positive, false_negative)
         if(true_positive!=0):
             precision = true_positive / (true_positive + false_positive)
             recall = true_positive / (true_positive + false_negative)
-        elif(true_positive==0):
-            if(false_negative==0):
-                recall=1
-                precision = 0
-            if(false_positive==0):
-                recall=0
-                precision=1
-        else:
-            print("wtf is going on")
-    f_2 = 1.25 * ((precision * recall) / (precision + recall))
-    avg_f2 = avg_f2 + f_2
-    num = num + 1
-
+            f_2 = 1.25 * ((precision * recall) / (precision + recall))
+            avg_f2 = avg_f2 + f_2
+            num = num + 1
     print(avg_f2/num)
 
 
