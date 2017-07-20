@@ -85,9 +85,8 @@ class AmazonDataSet(Dataset):
         return len(self.images)
 
     def __getitem__(self,idx):
-        img_name = os.getcwd()+"/../train/train-jpg/" + self.images[idx] + ".tif"
-        tif = TIFF.open(img_name, mode='r')
-        image = tif.read_image()
+        img_name = os.getcwd()+"/../train/train-jpg/" + self.images[idx] + ".jpg"
+        image = np.array(Image.open(img_name))
         sample = {'image':image, 'labels': self.labels[idx]}
         p = sample
         #print(sample)
