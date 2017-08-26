@@ -1,5 +1,5 @@
 # rainforest
-Kaggle Amazon Rainforest Competition
+Entry for the Kaggle Amazon Rainforest Competition (July 2017)
 
 https://www.kaggle.com/c/planet-understanding-the-amazon-from-space
 
